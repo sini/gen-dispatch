@@ -3,15 +3,19 @@
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
-    gen.url = "github:sini/gen";
+    gen-algebra.url = "github:sini/gen-algebra";
   };
 
   outputs =
-    { nixpkgs, gen, ... }:
+    {
+      nixpkgs,
+      gen-algebra,
+      ...
+    }:
     let
       deriveLib = import ./lib {
         lib = nixpkgs.lib;
-        genPure = gen.pure;
+        genPure = gen-algebra.pure;
       };
     in
     {

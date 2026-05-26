@@ -26,7 +26,7 @@ The hard part of rule dispatch is the convergence loop: dispatch rules, extract 
 
 | Library | Role |
 |---------|------|
-| [gen](https://github.com/sini/gen) | Pure primitives (search, record, identity) |
+| [gen-algebra](https://github.com/sini/gen-algebra) | Pure primitives (search, record, identity) |
 | [gen-schema](https://github.com/sini/gen-schema) | Typed registries (kinds, instances, collections, refs) |
 | [gen-aspects](https://github.com/sini/gen-aspects) | Aspect types (traits, classification, dispatch) |
 | [gen-graph](https://github.com/sini/gen-graph) | Graph queries (combinators, traversals, fixpoint) |
@@ -41,7 +41,7 @@ The hard part of rule dispatch is the convergence loop: dispatch rules, extract 
 # flake.nix
 {
   inputs.gen-derive.url = "github:sini/gen-derive";
-  inputs.gen.url = "github:sini/gen";
+  inputs.gen.url = "github:sini/gen-algebra";
   outputs = { gen-derive, gen, nixpkgs, ... }:
     let derive = gen-derive.lib;
     in { /* ... */ };
