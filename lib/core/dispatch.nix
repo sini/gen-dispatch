@@ -15,14 +15,6 @@ let
       fired ? { },
     }:
     let
-      # Phase ordering (validated, not used for grouping but available for consumers)
-      phaseOrder = dag.topoSort phases;
-      phaseList =
-        if phaseOrder ? result then
-          map (e: e.name) phaseOrder.result
-        else
-          throw "gen-derive: cycle in phase DAG";
-
       # Step 1: match rules (NAC + condition, skip already-fired)
       candidateMatched = filter (
         r:

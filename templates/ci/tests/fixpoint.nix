@@ -149,5 +149,29 @@ in
           builtins.length (r.actions.default or [ ]);
         expected = 1;
       };
+
+    test-anonymous-refires-each-iteration = {
+      expr = let
+        r = fixpoint {
+          rules = [
+            # Identified: enriches context once (fires iteration 1 only)
+            (mkRule {
+              condition = { host = false; };
+              produce = _id: _ctx: [ (fx.enrich { key = "isNixos"; value = true; }) ];
+              identity = "enricher";
+            })
+            # Anonymous: fires EVERY iteration it matches
+            (fromFunction ({ host, ... }: [ (fx.act { v = "anon"; }) ]))
+          ];
+          context = { host = {}; };
+          inherit match phases extract combine eq;
+          classify = fx.classify;
+        };
+      # 2 iterations: enricher adds isNixos, stabilizes on iter 2
+      # Anonymous fires both iterations → 2 act actions
+      # Enricher fires once → 1 enrich action
+      in builtins.length (r.actions.default or []);
+      expected = 3;  # iter1: enrich + act; iter2: act
+    };
   };
 }

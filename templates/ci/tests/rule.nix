@@ -80,5 +80,23 @@ in
       expr = fromFunctionMatch { host = true; user = true; } "id" {};
       expected = true;
     };
+
+    test-from-function-match-restricted = {
+      expr = fromFunctionMatch {
+        __restricted = true;
+        original = { host = false; };
+        extra = { env = false; };
+      } "id" { host = {}; env = "prod"; };
+      expected = true;
+    };
+
+    test-from-function-match-restricted-fails = {
+      expr = fromFunctionMatch {
+        __restricted = true;
+        original = { host = false; };
+        extra = { env = false; };
+      } "id" { host = {}; };
+      expected = false;
+    };
   };
 }

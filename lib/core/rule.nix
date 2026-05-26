@@ -24,11 +24,15 @@ let
       identity = if isIntensional fn then fn.name else null;
     };
 
-  fromFunctionMatch = condition: _id: ctx:
-    let
-      required = lib.filter (k: !condition.${k}) (builtins.attrNames condition);
-    in
-    lib.all (k: ctx ? ${k}) required;
+  fromFunctionMatch = condition: id: ctx:
+    if condition ? __restricted then
+      fromFunctionMatch condition.original id ctx
+      && fromFunctionMatch condition.extra id ctx
+    else
+      let
+        required = lib.filter (k: !condition.${k}) (builtins.attrNames condition);
+      in
+      lib.all (k: ctx ? ${k}) required;
 in
 {
   inherit mkRule fromFunction fromFunctionMatch;
