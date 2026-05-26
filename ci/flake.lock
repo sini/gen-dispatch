@@ -55,11 +55,11 @@
     },
     "gen-algebra": {
       "locked": {
-        "lastModified": 1779825489,
-        "narHash": "sha256-BujdXqzr2lRnHdRdAXD3qUSw9+tzp9xX5qAAud2ZbrA=",
+        "lastModified": 1779827139,
+        "narHash": "sha256-DK3oW5cwvU5xxMoqKUPQJLSxJJTYVBP1bRxXUsbz6bk=",
         "owner": "sini",
         "repo": "gen-algebra",
-        "rev": "0d6b546758e1f486df23038f9f583c3e2908d53c",
+        "rev": "b95674e22524972ba659a33d2004c84bc1aba812",
         "type": "github"
       },
       "original": {
@@ -89,11 +89,11 @@
         "nixpkgs": "nixpkgs"
       },
       "locked": {
-        "lastModified": 1779825532,
-        "narHash": "sha256-uCrjc0YR+VeJF9rGNXkG65/502DYkqs0A9zuPWhQF34=",
+        "lastModified": 1779827159,
+        "narHash": "sha256-Gqp5HEKGtqG60knFXdGydm4CrQlaBSw3iqT2Bo6zP1I=",
         "owner": "sini",
         "repo": "gen-select",
-        "rev": "c935656b053f5c79dcabaa6617627d8cf229c03a",
+        "rev": "4ed6c9cb72de51a8be1a2780c3de51f8054bb208",
         "type": "github"
       },
       "original": {
