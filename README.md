@@ -1,5 +1,7 @@
 # gen-derive
 
+[![CI](https://github.com/sini/gen-derive/actions/workflows/ci.yml/badge.svg)](https://github.com/sini/gen-derive/actions/workflows/ci.yml) [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
+
 Stratified rule dispatch engine with fixpoint convergence, implemented as a pure Nix library.
 
 gen-derive is a **production rule system** (Forgy, 1982) with **stratified phases** (Arntzenius & Krishnaswami, 2016) and **algebraic graph rewriting** vocabulary (Ehrig et al., 2006). Given rules (condition + action producer), a position, and a context, gen-derive answers: "which rules fire here, and what actions do they produce?" It owns dispatch, phase ordering, fixpoint convergence, conflict resolution, and rule dedup. Actions are opaque -- the vocabulary belongs to the consumer.
