@@ -41,14 +41,14 @@ The hard part of rule dispatch is the convergence loop: dispatch rules, extract 
 # flake.nix
 {
   inputs.gen-derive.url = "github:sini/gen-derive";
-  inputs.gen.url = "github:sini/gen-algebra";
-  outputs = { gen-derive, gen, nixpkgs, ... }:
+  inputs.gen-algebra.url = "github:sini/gen-algebra";
+  outputs = { gen-derive, gen-algebra, nixpkgs, ... }:
     let derive = gen-derive.lib;
     in { /* ... */ };
 }
 
 # Or without flakes:
-let derive = import ./gen-derive { inherit lib; gen = import ./gen {}; };
+let derive = import ./gen-derive { inherit lib; gen-algebra = import ./gen-algebra {}; };
 in { /* ... */ }
 ```
 
@@ -58,7 +58,7 @@ Policy-like rules that enrich context and produce typed actions across stratifie
 
 ```nix
 let
-  derive = import ./gen-derive { inherit lib; gen = import ./gen {}; };
+  derive = import ./gen-derive { inherit lib; gen-algebra = import ./gen-algebra {}; };
 
   # Define action vocabulary — gen-derive classifies but doesn't interpret
   fx = derive.mkActions {
@@ -105,9 +105,9 @@ in {
 
 ## Two-Tier Architecture
 
-gen-derive follows gen's pure/lib two-tier model:
+gen-derive follows gen-algebra's pure/lib two-tier model:
 
-- **Core tier** — depends on gen pure tier only. Conditions are opaque; caller provides `match : condition -> id -> ctx -> bool`.
+- **Core tier** — depends on gen-algebra pure tier only. Conditions are opaque; caller provides `match : condition -> id -> ctx -> bool`.
 - **Adapter tier** — imports gen-select. Bridges gen-select selectors into gen-derive conditions with `mkMatch` and `selectorSpecificity`.
 
 Consumers without gen-select can use gen-derive with custom match functions. Consumers with gen-select get selector pattern matching and CSS-like specificity for conflict resolution.
