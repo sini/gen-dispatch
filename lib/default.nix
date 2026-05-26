@@ -1,7 +1,24 @@
-{ lib, genPure }:
+{
+  inputs ? { },
+  lib,
+  genAlgebra ? null,
+}:
 let
+  # No-flakes import: resolve gen-algebra from CI flake.lock
+  lock = builtins.fromJSON (builtins.readFile ../../ci/flake.lock);
+  inherit (lock.nodes.gen-algebra) locked;
+  genAlgebraSrc = builtins.fetchTarball {
+    url = "https://github.com/${locked.owner}/${locked.repo}/archive/${locked.rev}.zip";
+    sha256 = locked.narHash;
+  };
+  resolvedGenAlgebra =
+    if genAlgebra != null then
+      genAlgebra
+    else
+      (inputs.gen-algebra or (import genAlgebraSrc { })).pure;
+
   dag = import ./core/dag.nix { inherit lib; };
-  rule = import ./core/rule.nix { inherit lib genPure; };
+  rule = import ./core/rule.nix { inherit lib; genAlgebra = resolvedGenAlgebra; };
   actions = import ./core/actions.nix { inherit lib; };
   dispatch' = import ./core/dispatch.nix { inherit lib dag; };
   fixpoint' = import ./core/fixpoint.nix { inherit lib; dispatchFn = dispatch'.dispatch; };

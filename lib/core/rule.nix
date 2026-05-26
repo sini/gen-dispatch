@@ -1,4 +1,4 @@
-{ lib, genPure }:
+{ lib, genAlgebra }:
 let
   isIntensional = v:
     builtins.isAttrs v && v ? name && v ? __functor && v ? closure;

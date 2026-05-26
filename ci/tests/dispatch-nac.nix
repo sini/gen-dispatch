@@ -1,9 +1,17 @@
 { lib, deriveLib, ... }:
 let
-  inherit (deriveLib) dispatch mkRule fromFunctionMatch mkActions entryAnywhere;
+  inherit (deriveLib)
+    dispatch
+    mkRule
+    fromFunctionMatch
+    mkActions
+    entryAnywhere
+    ;
   fx = mkActions { default = [ "act" ]; };
   match = fromFunctionMatch;
-  phases = { default = entryAnywhere { }; };
+  phases = {
+    default = entryAnywhere { };
+  };
 in
 {
   dispatch-nac = {
@@ -13,8 +21,12 @@ in
           r = dispatch {
             rules = [
               (mkRule {
-                condition = { host = false; };
-                nac = { monitoring = false; };
+                condition = {
+                  host = false;
+                };
+                nac = {
+                  monitoring = false;
+                };
                 produce = _id: _ctx: [ (fx.act { }) ];
               })
             ];
@@ -37,12 +49,16 @@ in
           r = dispatch {
             rules = [
               (mkRule {
-                condition = { host = false; };
+                condition = {
+                  host = false;
+                };
                 produce = _id: _ctx: [ (fx.act { }) ];
               })
             ];
             id = "x";
-            context = { host = { }; };
+            context = {
+              host = { };
+            };
             inherit match phases;
             classify = fx.classify;
           };
@@ -57,13 +73,19 @@ in
           r = dispatch {
             rules = [
               (mkRule {
-                condition = { host = false; };
-                nac = { monitoring = false; };
+                condition = {
+                  host = false;
+                };
+                nac = {
+                  monitoring = false;
+                };
                 produce = _id: _ctx: [ (fx.act { }) ];
               })
             ];
             id = "x";
-            context = { host = { }; };
+            context = {
+              host = { };
+            };
             inherit match phases;
             classify = fx.classify;
           };

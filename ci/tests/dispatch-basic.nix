@@ -1,9 +1,23 @@
-{ lib, deriveLib, genPure, ... }:
+{
+  lib,
+  deriveLib,
+  genAlgebra,
+  ...
+}:
 let
-  inherit (deriveLib) dispatch fromFunction fromFunctionMatch mkRule mkActions entryAnywhere;
+  inherit (deriveLib)
+    dispatch
+    fromFunction
+    fromFunctionMatch
+    mkRule
+    mkActions
+    entryAnywhere
+    ;
   fx = mkActions { default = [ "act" ]; };
   match = fromFunctionMatch;
-  phases = { default = entryAnywhere { }; };
+  phases = {
+    default = entryAnywhere { };
+  };
 in
 {
   dispatch-basic = {
@@ -13,14 +27,21 @@ in
           r = dispatch {
             rules = [ (fromFunction ({ host, ... }: [ (fx.act { v = 1; }) ])) ];
             id = "host:igloo";
-            context = { host = { }; };
+            context = {
+              host = { };
+            };
             inherit match phases;
             classify = fx.classify;
           };
         in
         r.actions;
       expected = {
-        default = [ { __action = "act"; v = 1; } ];
+        default = [
+          {
+            __action = "act";
+            v = 1;
+          }
+        ];
       };
     };
 
@@ -48,15 +69,23 @@ in
               (fromFunction ({ host, ... }: [ (fx.act { v = 2; }) ]))
             ];
             id = "x";
-            context = { host = { }; };
+            context = {
+              host = { };
+            };
             inherit match phases;
             classify = fx.classify;
           };
         in
         r.actions.default;
       expected = [
-        { __action = "act"; v = 1; }
-        { __action = "act"; v = 2; }
+        {
+          __action = "act";
+          v = 1;
+        }
+        {
+          __action = "act";
+          v = 2;
+        }
       ];
     };
 
@@ -66,19 +95,25 @@ in
           r = dispatch {
             rules = [
               (mkRule {
-                condition = { host = false; };
+                condition = {
+                  host = false;
+                };
                 produce = _id: _ctx: [ (fx.act { }) ];
                 identity = "my-rule";
               })
             ];
             id = "x";
-            context = { host = { }; };
+            context = {
+              host = { };
+            };
             inherit match phases;
             classify = fx.classify;
           };
         in
         r.fired;
-      expected = { "my-rule" = true; };
+      expected = {
+        "my-rule" = true;
+      };
     };
 
     test-fired-skips-anonymous = {
@@ -87,7 +122,9 @@ in
           r = dispatch {
             rules = [ (fromFunction ({ host, ... }: [ (fx.act { }) ])) ];
             id = "x";
-            context = { host = { }; };
+            context = {
+              host = { };
+            };
             inherit match phases;
             classify = fx.classify;
           };

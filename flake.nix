@@ -15,7 +15,7 @@
     let
       deriveLib = import ./lib {
         lib = nixpkgs.lib;
-        genPure = gen-algebra.pure;
+        genAlgebra = gen-algebra.pure;
       };
     in
     {

@@ -1,15 +1,24 @@
 { lib, deriveLib, ... }:
 let
   fx = deriveLib.mkActions {
-    structural = [ "spawn" "enrich" ];
-    resolution = [ "edge" "drop" ];
+    structural = [
+      "spawn"
+      "enrich"
+    ];
+    resolution = [
+      "edge"
+      "drop"
+    ];
   };
 in
 {
   actions = {
     test-constructor-shape = {
       expr = fx.spawn { nodeId = "test"; };
-      expected = { __action = "spawn"; nodeId = "test"; };
+      expected = {
+        __action = "spawn";
+        nodeId = "test";
+      };
     };
 
     test-classify-structural = {
@@ -24,7 +33,10 @@ in
 
     test-classify-unknown-throws = {
       expr = builtins.tryEval (fx.classify { __action = "unknown"; });
-      expected = { success = false; value = false; };
+      expected = {
+        success = false;
+        value = false;
+      };
     };
   };
 }
