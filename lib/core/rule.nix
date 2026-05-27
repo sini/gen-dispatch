@@ -1,7 +1,6 @@
 { lib, genAlgebra }:
 let
-  isIntensional = v:
-    builtins.isAttrs v && v ? name && v ? __functor && v ? closure;
+  isIntensional = v: builtins.isAttrs v && v ? name && v ? __functor && v ? closure;
 
   mkRule =
     {
@@ -10,11 +9,21 @@ let
       nac ? null,
       identity ? null,
       priority ? 0,
-      overrides ? [],
+      overrides ? [ ],
     }:
-    { inherit condition produce nac identity priority overrides; };
+    {
+      inherit
+        condition
+        produce
+        nac
+        identity
+        priority
+        overrides
+        ;
+    };
 
-  fromFunction = fn:
+  fromFunction =
+    fn:
     let
       args = builtins.functionArgs fn;
     in
@@ -24,10 +33,10 @@ let
       identity = if isIntensional fn then fn.name else null;
     };
 
-  fromFunctionMatch = condition: id: ctx:
+  fromFunctionMatch =
+    condition: id: ctx:
     if condition ? __restricted then
-      fromFunctionMatch condition.original id ctx
-      && fromFunctionMatch condition.extra id ctx
+      fromFunctionMatch condition.original id ctx && fromFunctionMatch condition.extra id ctx
     else
       let
         required = lib.filter (k: !condition.${k}) (builtins.attrNames condition);

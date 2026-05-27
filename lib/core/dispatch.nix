@@ -1,7 +1,12 @@
 # One-shot dispatch: match rules, resolve overrides + priority, group by phase.
 { lib, dag }:
 let
-  inherit (lib) filter foldl' sort unique;
+  inherit (lib)
+    filter
+    foldl'
+    sort
+    unique
+    ;
 
   dispatch =
     {

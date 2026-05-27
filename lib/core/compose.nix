@@ -1,30 +1,34 @@
 { lib }:
 let
-  restrict = extraCondition: rule:
-    rule // {
+  restrict =
+    extraCondition: rule:
+    rule
+    // {
       condition = {
         __restricted = true;
         original = rule.condition;
         extra = extraCondition;
       };
-      identity =
-        if rule.identity != null then "restricted:${rule.identity}"
-        else null;
+      identity = if rule.identity != null then "restricted:${rule.identity}" else null;
     };
 
-  override = original: replacement:
+  override =
+    original: replacement:
     if original.identity == null then
       throw "gen-derive: cannot override anonymous rule"
     else
-      replacement // {
-        overrides = (replacement.overrides or []) ++ [ original.identity ];
+      replacement
+      // {
+        overrides = (replacement.overrides or [ ]) ++ [ original.identity ];
       };
 
-  chain = { extract }: ruleA: ruleB:
-    {
+  chain =
+    { extract }:
+    ruleA: ruleB: {
       inherit (ruleA) condition nac priority;
-      overrides = (ruleA.overrides or []) ++ (ruleB.overrides or []);
-      produce = id: ctx:
+      overrides = (ruleA.overrides or [ ]) ++ (ruleB.overrides or [ ]);
+      produce =
+        id: ctx:
         let
           actionsA = ruleA.produce id ctx;
           feedback = extract actionsA;
@@ -34,7 +38,8 @@ let
         let
           a = if ruleA.identity != null then ruleA.identity else "anon";
           b = if ruleB.identity != null then ruleB.identity else "anon";
-        in "chain:${a}:${b}";
+        in
+        "chain:${a}:${b}";
     };
 in
 {

@@ -5,14 +5,14 @@ let
   inherit (lib) filterAttrs mapAttrs toposort;
 
   entryBetween = before: after: data: { inherit data before after; };
-  entryAnywhere = entryBetween [] [];
-  entryAfter = entryBetween [];
-  entryBefore = before: entryBetween before [];
+  entryAnywhere = entryBetween [ ] [ ];
+  entryAfter = entryBetween [ ];
+  entryBefore = before: entryBetween before [ ];
 
-  topoSort = dag:
+  topoSort =
+    dag:
     let
-      dagBefore = name:
-        builtins.attrNames (filterAttrs (_n: v: builtins.elem name v.before) dag);
+      dagBefore = name: builtins.attrNames (filterAttrs (_n: v: builtins.elem name v.before) dag);
       normalized = mapAttrs (n: v: {
         name = n;
         inherit (v) data;
@@ -21,11 +21,14 @@ let
       before = a: b: builtins.elem a.name b.after;
       sorted = toposort before (builtins.attrValues normalized);
     in
-    if sorted ? result then
-      { result = map (v: { inherit (v) name data; }) sorted.result; }
-    else
-      sorted;
+    if sorted ? result then { result = map (v: { inherit (v) name data; }) sorted.result; } else sorted;
 in
 {
-  inherit entryBetween entryAnywhere entryAfter entryBefore topoSort;
+  inherit
+    entryBetween
+    entryAnywhere
+    entryAfter
+    entryBefore
+    topoSort
+    ;
 }
