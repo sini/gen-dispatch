@@ -53,39 +53,6 @@ in
       ];
     };
 
-    test-ordered-phases-toposorted = {
-      expr =
-        let
-          r = dispatch {
-            rules = [
-              (mkRule {
-                condition = {
-                  host = false;
-                };
-                produce = _id: _ctx: [ (fx.spawn { }) ];
-              })
-              (mkRule {
-                condition = {
-                  host = false;
-                };
-                produce = _id: _ctx: [ (fx.edge { }) ];
-              })
-            ];
-            id = "x";
-            context = {
-              host = { };
-            };
-            inherit match phases;
-            classify = fx.classify;
-          };
-        in
-        r.orderedPhases;
-      expected = [
-        "structural"
-        "resolution"
-      ];
-    };
-
     test-phase-validation-error = {
       expr = builtins.tryEval (
         builtins.deepSeq (dispatch {

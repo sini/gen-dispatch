@@ -141,10 +141,10 @@ dispatch {
   exclusive ? false;  # only highest-priority group fires
   fired ? {};         # pre-seeded fired identity set
 }
--> { actions; orderedPhases; fired; }
+-> { actions; fired; }
 ```
 
-One-shot dispatch. Fires all matching rules, groups actions by phase. Returns `orderedPhases` — phase names topoSorted from the `phases` DAG, filtered to phases that produced actions. Consumers iterate `orderedPhases` to process actions in dependency order. Validates single-phase-per-rule constraint.
+One-shot dispatch. Fires all matching rules, groups actions by phase in topological order. Validates single-phase-per-rule constraint.
 
 **Dispatch sequence:** NAC check -> condition match -> override suppression (from matched rules only) -> priority sort -> exclusive filter -> fire -> classify -> group.
 
@@ -160,10 +160,10 @@ fixpoint {
   exclusive ? false;
   maxIter ? 100;
 }
--> { actions; orderedPhases; context; iterations; fired; }
+-> { actions; context; iterations; fired; }
 ```
 
-Convergent dispatch loop. Calls `dispatch` iteratively -- each iteration extracts feedback from actions, widens context, checks stability. Returns `orderedPhases` from the final dispatch iteration. Identified rules fire at most once across iterations (dedup via `fired` set). Anonymous rules re-fire each iteration.
+Convergent dispatch loop. Calls `dispatch` iteratively -- each iteration extracts feedback from actions, widens context, checks stability. Identified rules fire at most once across iterations (dedup via `fired` set). Anonymous rules re-fire each iteration.
 
 ### `mkRule`
 

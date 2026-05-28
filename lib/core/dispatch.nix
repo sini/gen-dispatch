@@ -86,20 +86,9 @@ let
       newFired = foldl' (
         acc: r: if r.identity != null then acc // { ${r.identity} = true; } else acc
       ) fired validated;
-
-      # Step 10: topoSort phases for ordered consumption
-      presentPhases = builtins.attrNames grouped;
-      orderedPhases =
-        let
-          # Filter phases DAG to only phases that produced actions
-          relevantPhases = lib.filterAttrs (n: _: builtins.elem n presentPhases) phases;
-          sorted = dag.topoSort relevantPhases;
-        in
-        if sorted ? result then map (e: e.name) sorted.result else presentPhases;
     in
     {
       actions = grouped;
-      inherit orderedPhases;
       fired = newFired;
     };
 in
