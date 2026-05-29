@@ -1,11 +1,11 @@
 {
   lib,
-  deriveLib,
+  genDerive,
   genAlgebra,
   ...
 }:
 let
-  inherit (deriveLib)
+  inherit (genDerive)
     restrict
     override
     chain

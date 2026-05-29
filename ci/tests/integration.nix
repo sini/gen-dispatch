@@ -1,12 +1,12 @@
 {
   lib,
-  deriveLib,
-  selectLib,
+  genDerive,
+  genSelect,
   genAlgebra,
   ...
 }:
 let
-  inherit (deriveLib)
+  inherit (genDerive)
     fixpoint
     fromFunction
     fromFunctionMatch
@@ -17,8 +17,8 @@ let
     override
     ;
   mkI = genAlgebra.mkIntensional;
-  sel = selectLib;
-  adapter = deriveLib.adapters.select;
+  sel = genSelect;
+  adapter = genDerive.adapters.select;
 in
 {
   flake.tests.integration = {
@@ -117,7 +117,7 @@ in
       expr =
         let
           fx = mkActions { default = [ "act" ]; };
-          match = adapter.mkMatch selectLib;
+          match = adapter.mkMatch genSelect;
           mockCtx = {
             data =
               id:
@@ -137,7 +137,7 @@ in
             ancestors = _: [ ];
             siblings = _: [ ];
           };
-          r = deriveLib.dispatch {
+          r = genDerive.dispatch {
             rules = [
               (mkRule {
                 condition = sel.attrs {

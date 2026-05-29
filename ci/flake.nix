@@ -11,13 +11,13 @@
     let
       inherit (nixpkgs) lib;
       genAlgebra = inputs.gen-algebra.pure;
-      deriveLib = import ../lib { inherit lib genAlgebra; };
-      selectLib = import "${inputs.gen-select}/lib" { inherit lib genAlgebra; };
+      genDerive = import ../lib { inherit lib genAlgebra; };
+      genSelect = import "${inputs.gen-select}/lib" { inherit lib genAlgebra; };
     in
     gen.lib.mkCi {
       inherit inputs;
       name = "gen-derive";
       testModules = ./tests;
-      specialArgs = { inherit deriveLib selectLib genAlgebra; };
+      specialArgs = { inherit genDerive genSelect genAlgebra; };
     };
 }

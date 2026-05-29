@@ -1,13 +1,13 @@
 {
   lib,
-  deriveLib,
-  selectLib,
+  genDerive,
+  genSelect,
   ...
 }:
 let
-  sel = selectLib;
-  adapter = deriveLib.adapters.select;
-  match = adapter.mkMatch selectLib;
+  sel = genSelect;
+  adapter = genDerive.adapters.select;
+  match = adapter.mkMatch genSelect;
   mockCtx = {
     data =
       id:

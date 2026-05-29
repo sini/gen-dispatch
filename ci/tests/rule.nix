@@ -1,11 +1,11 @@
 {
   lib,
-  deriveLib,
+  genDerive,
   genAlgebra,
   ...
 }:
 let
-  inherit (deriveLib) mkRule fromFunction fromFunctionMatch;
+  inherit (genDerive) mkRule fromFunction fromFunctionMatch;
   mkI = genAlgebra.mkIntensional;
 in
 {

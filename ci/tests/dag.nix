@@ -1,6 +1,6 @@
-{ lib, deriveLib, ... }:
+{ lib, genDerive, ... }:
 let
-  inherit (deriveLib)
+  inherit (genDerive)
     entryAnywhere
     entryAfter
     entryBefore
@@ -37,7 +37,7 @@ in
     };
 
     test-entry-between-shape = {
-      expr = deriveLib.entryBetween [ "c" ] [ "a" ] { };
+      expr = genDerive.entryBetween [ "c" ] [ "a" ] { };
       expected = {
         data = { };
         before = [ "c" ];
