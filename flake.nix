@@ -13,12 +13,12 @@
       ...
     }:
     let
-      deriveLib = import ./lib {
+      genDerive = import ./lib {
         lib = nixpkgs.lib;
         genAlgebra = gen-algebra.pure;
       };
     in
     {
-      lib = deriveLib;
+      lib = genDerive;
     };
 }

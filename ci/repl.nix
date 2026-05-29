@@ -2,9 +2,9 @@
 let
   nixpkgs = import (builtins.getFlake "nixpkgs") { };
   inherit (nixpkgs) lib;
-  deriveLib = import ../lib { inherit lib; };
+  genDerive = import ../lib { inherit lib; };
 in
 {
-  inherit lib deriveLib;
+  inherit lib genDerive;
 }
-// deriveLib
+// genDerive
