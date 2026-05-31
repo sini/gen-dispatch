@@ -146,5 +146,56 @@ in
         builtins.length r.actions.default;
       expected = 1;
     };
+
+    # E1 (∆-Nets analysis): equal-priority rules must resolve in a deterministic
+    # total order (declaration order), independent of builtins.sort stability or
+    # rule-list enumeration order. See
+    # papers/den-architecture/gen-specs/DELTA-NETS-FOLLOWUPS.md item E1.
+    test-equal-priority-deterministic =
+      let
+        mk =
+          v:
+          mkRule {
+            condition = {
+              host = false;
+            };
+            produce = _id: _ctx: [ (fx.act { inherit v; }) ];
+            priority = 5;
+          };
+        run =
+          rules:
+          map (a: a.v)
+            (dispatch {
+              inherit rules;
+              id = "x";
+              context = {
+                host = { };
+              };
+              inherit match phases;
+              classify = fx.classify;
+            }).actions.default;
+      in
+      {
+        expr = {
+          ab = run [
+            (mk "a")
+            (mk "b")
+          ];
+          ba = run [
+            (mk "b")
+            (mk "a")
+          ];
+        };
+        expected = {
+          ab = [
+            "a"
+            "b"
+          ];
+          ba = [
+            "b"
+            "a"
+          ];
+        };
+      };
   };
 }

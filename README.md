@@ -225,7 +225,7 @@ Three strategies, applied in order:
 | Priority | Core | Numeric `priority` (higher first), `exclusive` mode |
 | Specificity | Adapter | Selector constraint term count via `selectorSpecificity` |
 
-**Resolution order:** override suppression -> priority sort -> specificity (adapter) -> ties fire additively.
+**Resolution order:** override suppression -> priority sort -> specificity (adapter) -> ties fire additively. Equal-priority ties are ordered deterministically by declaration order (a total-order sort, independent of `builtins.sort` stability or rule-list enumeration order).
 
 ### Rule Composition
 

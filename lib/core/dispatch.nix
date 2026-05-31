@@ -8,6 +8,7 @@ let
   inherit (lib)
     filter
     foldl'
+    imap0
     sort
     unique
     ;
@@ -71,7 +72,16 @@ let
 
           matched = filter (r: r.identity == null || !(overridden' ? ${r.identity})) matched0;
 
-          sorted = sort (a: b: a.priority > b.priority) matched;
+          # Total-order sort: priority descending, ties broken deterministically
+          # by declaration order, so the fired set never depends on builtins.sort
+          # stability or rule-list enumeration order. Surfaced by the ∆-Nets
+          # analysis (equal-priority + `exclusive` ties were order-sensitive); see
+          # papers/den-architecture/gen-specs/DELTA-NETS-FOLLOWUPS.md item E1.
+          sorted = map (x: x.r) (
+            sort (a: b: if a.r.priority != b.r.priority then a.r.priority > b.r.priority else a.i < b.i) (
+              imap0 (i: r: { inherit i r; }) matched
+            )
+          );
 
           filtered =
             if !exclusive || sorted == [ ] then
