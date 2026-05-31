@@ -10,6 +10,7 @@ let
       identity ? null,
       priority ? 0,
       overrides ? [ ],
+      phase ? null,
     }:
     {
       inherit
@@ -19,6 +20,7 @@ let
         identity
         priority
         overrides
+        phase
         ;
     };
 

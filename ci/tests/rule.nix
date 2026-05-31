@@ -157,5 +157,24 @@ in
       } "id" { host = { }; };
       expected = false;
     };
+
+    test-mkRule-phase = {
+      expr =
+        (mkRule {
+          condition = { };
+          produce = _: _: [ ];
+          phase = "structural";
+        }).phase;
+      expected = "structural";
+    };
+
+    test-mkRule-phase-default-null = {
+      expr =
+        (mkRule {
+          condition = { };
+          produce = _: _: [ ];
+        }).phase;
+      expected = null;
+    };
   };
 }
