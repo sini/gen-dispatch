@@ -4,7 +4,7 @@
 
 Stratified rule dispatch engine with fixpoint convergence, implemented as a pure Nix library.
 
-gen-derive is a **production rule system** (Forgy, 1982) with **stratified phases** (Arntzenius & Krishnaswami, 2016) and **algebraic graph rewriting** vocabulary (Ehrig et al., 2006). Given rules (condition + action producer), a position, and a context, gen-derive answers: "which rules fire here, and what actions do they produce?" It owns dispatch, fixpoint convergence, conflict resolution, and rule dedup. Phase ordering is currently the caller's responsibility: `dispatch` groups actions by phase but does not execute them in DAG order (full per-phase stratified dispatch is planned, which will make this faithful). Actions are opaque -- the vocabulary belongs to the consumer.
+gen-derive is a **production rule system** (Forgy, 1982) with **stratified phases** (Arntzenius & Krishnaswami, 2016) and **algebraic graph rewriting** vocabulary (Ehrig et al., 2006). Given rules (condition + action producer), a position, and a context, gen-derive answers: "which rules fire here, and what actions do they produce?" It owns dispatch, fixpoint convergence, conflict resolution, and rule dedup. Dispatch processes phases in topological order — all rules in phase N complete before phase N+1 begins, with context threaded between phases. Actions are opaque -- the vocabulary belongs to the consumer.
 
 gen-derive is generic. It has no knowledge of NixOS, aspects, policies, or system configuration. It provides dispatch machinery; consumers define what to compute.
 
@@ -144,7 +144,7 @@ dispatch {
 -> { actions; fired; }
 ```
 
-One-shot dispatch. Fires all matching rules, groups actions by phase name (the caller iterates phases in DAG order -- `dispatch` does not order them itself; full per-phase stratified dispatch is planned). Validates single-phase-per-rule constraint.
+One-shot dispatch. Fires all matching rules in topological phase order — lower phases complete before higher phases begin, with context threaded between phases. Validates single-phase-per-rule constraint.
 
 **Dispatch sequence:** NAC check -> condition match -> override suppression (from matched rules only) -> priority sort -> exclusive filter -> fire -> classify -> group.
 
@@ -274,7 +274,7 @@ Requires nix-unit. 55 tests across 11 suites.
 |-------|-------------|----------|
 | Forgy (1982) "RETE" | Implements | Condition-action rule dispatch; rule = condition + action production system |
 | Ehrig et al. (2006) "Fundamentals of Algebraic Graph Transformation" | Implements | Graph rewriting rules, negative application conditions as first-class `nac` field |
-| Arntzenius & Krishnaswami (2016) "Datafun" | Informed by | Monotonic fixpoint with convergence check; stratified phases (phase ordering is currently the caller's responsibility -- full per-phase stratified dispatch is planned, which will make this faithful) |
+| Arntzenius & Krishnaswami (2016) "Datafun" | **Implements** | Monotonic fixpoint with convergence check; stratified phases dispatched in topological order — all rules in phase N complete before phase N+1 begins, with context threaded between phases |
 | Palmer et al. (2024) "Intensional Functions" | Implements | Rule identity via `mkIntensional` detection (three-field check: `name`, `__functor`, `closure`), dedup |
 | Radul & Sussman (2009) "Art of the Propagator" | Informed by | Monotonic convergence model; quiescence as stability criterion for fixpoint loop |
 | Hedin & Magnusson (2003) "JastAdd" | Informed by | Open action types with framework-owned dispatch; aspect-oriented modular attribution |
