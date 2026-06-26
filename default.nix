@@ -6,5 +6,5 @@
 }:
 import ./lib {
   inherit lib;
-  genAlgebra = gen-algebra.pure;
+  genAlgebra = gen-algebra.lib;
 }

@@ -10,7 +10,7 @@
     inputs@{ gen, nixpkgs, ... }:
     let
       inherit (nixpkgs) lib;
-      genAlgebra = inputs.gen-algebra.pure;
+      genAlgebra = inputs.gen-algebra.lib;
       genDerive = import ../lib { inherit lib genAlgebra; };
       genSelect = import "${inputs.gen-select}/lib" { inherit lib genAlgebra; };
     in

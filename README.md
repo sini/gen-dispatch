@@ -188,7 +188,7 @@ mkRule {
 fromFunction : fn -> rule
 ```
 
-Converts a Nix function into a rule using `builtins.functionArgs` as the condition. Detects `mkIntensional`-wrapped functions (Palmer 2024) via three-field check (`name`, `__functor`, `closure`) and extracts identity automatically.
+Converts a Nix function into a rule using `builtins.functionArgs` as the condition. Detects `mkIntensional`-wrapped functions (Palmer 2024) via four-predicate check (`isAttrs` + `name`/`__functor`/`closure`) and extracts identity automatically.
 
 ```nix
 # { host, ... } is the condition -- required arg "host" must be in context
@@ -264,12 +264,12 @@ derive.adapters.select.selectorSpecificity selector  # -> int
 
 ```bash
 cd ci
-just ci                    # run all 55 tests
+just ci                    # run all 68 tests
 just ci dispatch-basic     # run one suite
 just ci fixpoint.test-converge-two-iterations  # specific test
 ```
 
-Requires nix-unit. 55 tests across 11 suites.
+Requires nix-unit. 68 tests across 11 suites.
 
 ## Theoretical Foundations
 
@@ -278,7 +278,7 @@ Requires nix-unit. 55 tests across 11 suites.
 | Forgy (1982) "RETE" | Implements | Condition-action rule dispatch; rule = condition + action production system |
 | Ehrig et al. (2006) "Fundamentals of Algebraic Graph Transformation" | Implements | Graph rewriting rules, negative application conditions as first-class `nac` field |
 | Arntzenius & Krishnaswami (2016) "Datafun" | **Implements** | Monotonic fixpoint with convergence check; stratified phases dispatched in topological order — all rules in phase N complete before phase N+1 begins, with context threaded between phases |
-| Palmer et al. (2024) "Intensional Functions" | Implements | Rule identity via `mkIntensional` detection (three-field check: `name`, `__functor`, `closure`), dedup |
+| Palmer et al. (2024) "Intensional Functions" | Implements | Rule identity via `mkIntensional` detection (four-predicate check: `isAttrs` + `name`/`__functor`/`closure`), dedup |
 | Radul & Sussman (2009) "Art of the Propagator" | Informed by | Monotonic convergence model; quiescence as stability criterion for fixpoint loop |
 | Hedin & Magnusson (2003) "JastAdd" | Informed by | Open action types with framework-owned dispatch; aspect-oriented modular attribution |
 | Batory (2005) "AHEAD" | Informed by | Feature composition model inspires `restrict`/`override`/`chain` rule combinators |
