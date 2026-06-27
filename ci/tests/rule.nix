@@ -1,12 +1,12 @@
 {
   lib,
   genDerive,
-  genAlgebra,
+  mkIntensional,
   ...
 }:
 let
   inherit (genDerive) mkRule fromFunction fromFunctionMatch;
-  mkI = genAlgebra.mkIntensional;
+  mkI = mkIntensional;
 in
 {
   flake.tests.rule = {

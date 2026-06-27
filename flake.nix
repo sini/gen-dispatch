@@ -1,22 +1,17 @@
 {
   description = "gen-derive: stratified rule dispatch with fixpoint convergence";
 
+  # gen-derive depends only on gen-prelude (pure, zero-input): builtins via prelude
+  # re-exports + the vendored filterAttrs/imap0/unique/toposort. The former nixpkgs.lib
+  # and gen-algebra (dead) dependencies are gone — see the purity remediation.
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
-    gen-algebra.url = "github:sini/gen-algebra";
+    gen-prelude.url = "github:sini/gen-prelude";
   };
 
   outputs =
-    {
-      nixpkgs,
-      gen-algebra,
-      ...
-    }:
+    { gen-prelude, ... }:
     let
-      genDerive = import ./lib {
-        lib = nixpkgs.lib;
-        genAlgebra = gen-algebra.lib;
-      };
+      genDerive = import ./lib { prelude = import "${gen-prelude}/lib" { }; };
     in
     {
       lib = genDerive;

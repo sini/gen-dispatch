@@ -1,9 +1,9 @@
 # Fixpoint convergence: iteratively run a stratified dispatch pass until the
 # context stabilizes. Intra-pass phase threading lives in dispatch; fixpoint
 # only owns inter-pass convergence + ordered action accumulation.
-{ lib, dispatchFn }:
+{ prelude, dispatchFn }:
 let
-  inherit (lib) foldl';
+  inherit (prelude) foldl';
 
   fixpoint =
     {

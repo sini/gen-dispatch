@@ -1,4 +1,4 @@
-{ lib }:
+{ ... }:
 let
   restrict =
     extraCondition: rule:

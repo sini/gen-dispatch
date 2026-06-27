@@ -2,7 +2,7 @@
   lib,
   genDerive,
   genSelect,
-  genAlgebra,
+  mkIntensional,
   ...
 }:
 let
@@ -16,7 +16,7 @@ let
     entryAfter
     override
     ;
-  mkI = genAlgebra.mkIntensional;
+  mkI = mkIntensional;
   sel = genSelect;
   adapter = genDerive.adapters.select;
 in

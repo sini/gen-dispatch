@@ -1,7 +1,6 @@
 {
   lib,
   genDerive,
-  genAlgebra,
   ...
 }:
 let

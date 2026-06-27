@@ -1,4 +1,4 @@
-{ lib, genAlgebra }:
+{ prelude }:
 let
   isIntensional = v: builtins.isAttrs v && v ? name && v ? __functor && v ? closure;
 
@@ -41,9 +41,9 @@ let
       fromFunctionMatch condition.original id ctx && fromFunctionMatch condition.extra id ctx
     else
       let
-        required = lib.filter (k: !condition.${k}) (builtins.attrNames condition);
+        required = prelude.filter (k: !condition.${k}) (builtins.attrNames condition);
       in
-      lib.all (k: ctx ? ${k}) required;
+      prelude.all (k: ctx ? ${k}) required;
 in
 {
   inherit mkRule fromFunction fromFunctionMatch;

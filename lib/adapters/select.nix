@@ -1,4 +1,4 @@
-{ lib }:
+{ prelude }:
 let
   mkMatch =
     genSelect: condition: id: ctx:
@@ -21,9 +21,9 @@ let
     else if tag == "attrs" then
       builtins.length (builtins.attrNames selector.a)
     else if tag == "and" then
-      lib.foldl' (acc: s: acc + selectorSpecificity s) 0 selector.selectors
+      prelude.foldl' (acc: s: acc + selectorSpecificity s) 0 selector.selectors
     else if tag == "any" then
-      lib.foldl' (acc: s: acc + selectorSpecificity s) 0 selector.selectors
+      prelude.foldl' (acc: s: acc + selectorSpecificity s) 0 selector.selectors
     else if tag == "not" then
       selectorSpecificity selector.selector
     else if tag == "has" then

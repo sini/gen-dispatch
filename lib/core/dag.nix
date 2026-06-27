@@ -1,8 +1,8 @@
-# Inline DAG entry constructors over lib.toposort.
+# Inline DAG entry constructors over gen-prelude's vendored toposort.
 # Pattern from home-manager's dag library (generalized strings-with-deps).
-{ lib }:
+{ prelude }:
 let
-  inherit (lib) filterAttrs mapAttrs toposort;
+  inherit (prelude) filterAttrs mapAttrs toposort;
 
   entryBetween = before: after: data: { inherit data before after; };
   entryAnywhere = entryBetween [ ] [ ];

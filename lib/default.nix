@@ -1,32 +1,18 @@
-{
-  inputs ? { },
-  lib,
-  genAlgebra ? null,
-}:
+# gen-derive depends only on gen-prelude (pure, nixpkgs-lib-free): builtins via prelude
+# re-exports + the vendored filterAttrs/imap0/unique/toposort. The former gen-algebra
+# dependency was dead (rule.nix never referenced it) and has been dropped.
+{ prelude }:
 let
-  # No-flakes import: resolve gen-algebra from CI flake.lock
-  lock = builtins.fromJSON (builtins.readFile ../../ci/flake.lock);
-  inherit (lock.nodes.gen-algebra) locked;
-  genAlgebraSrc = builtins.fetchTarball {
-    url = "https://github.com/${locked.owner}/${locked.repo}/archive/${locked.rev}.zip";
-    sha256 = locked.narHash;
-  };
-  resolvedGenAlgebra =
-    if genAlgebra != null then genAlgebra else (inputs.gen-algebra or (import genAlgebraSrc { })).lib;
-
-  dag = import ./core/dag.nix { inherit lib; };
-  rule = import ./core/rule.nix {
-    inherit lib;
-    genAlgebra = resolvedGenAlgebra;
-  };
-  actions = import ./core/actions.nix { inherit lib; };
-  dispatch' = import ./core/dispatch.nix { inherit lib dag; };
+  dag = import ./core/dag.nix { inherit prelude; };
+  rule = import ./core/rule.nix { inherit prelude; };
+  actions = import ./core/actions.nix { inherit prelude; };
+  dispatch' = import ./core/dispatch.nix { inherit prelude dag; };
   fixpoint' = import ./core/fixpoint.nix {
-    inherit lib;
+    inherit prelude;
     dispatchFn = dispatch'.dispatch;
   };
-  compose = import ./core/compose.nix { inherit lib; };
-  selectAdapter = import ./adapters/select.nix { inherit lib; };
+  compose = import ./core/compose.nix { };
+  selectAdapter = import ./adapters/select.nix { inherit prelude; };
 in
 {
   inherit (dag)

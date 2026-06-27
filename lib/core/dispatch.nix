@@ -3,9 +3,9 @@
 # overrides (accumulated FORWARD across phases) + priority/exclusive, fire,
 # classify-validate, group. Single/degenerate phase + identity extract/combine
 # reproduces the prior single-pass behavior exactly.
-{ lib, dag }:
+{ prelude, dag }:
 let
-  inherit (lib)
+  inherit (prelude)
     filter
     foldl'
     imap0

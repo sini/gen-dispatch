@@ -1,7 +1,7 @@
 {
   lib,
   genDerive,
-  genAlgebra,
+  mkIntensional,
   ...
 }:
 let
@@ -14,7 +14,7 @@ let
     entryAnywhere
     entryAfter
     ;
-  mkI = genAlgebra.mkIntensional;
+  mkI = mkIntensional;
   fx = mkActions {
     default = [
       "enrich"

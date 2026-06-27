@@ -1,15 +1,15 @@
-{ lib }:
+{ prelude }:
 let
   mkActions =
     phases:
     let
-      tagToPhase = lib.foldl' (
-        acc: phaseName: lib.foldl' (acc': tag: acc' // { ${tag} = phaseName; }) acc phases.${phaseName}
+      tagToPhase = prelude.foldl' (
+        acc: phaseName: prelude.foldl' (acc': tag: acc' // { ${tag} = phaseName; }) acc phases.${phaseName}
       ) { } (builtins.attrNames phases);
 
-      constructors = lib.foldl' (
+      constructors = prelude.foldl' (
         acc: phaseName:
-        lib.foldl' (
+        prelude.foldl' (
           acc': tag: acc' // { ${tag} = args: { __action = tag; } // args; }
         ) acc phases.${phaseName}
       ) { } (builtins.attrNames phases);

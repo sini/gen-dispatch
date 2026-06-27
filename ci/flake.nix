@@ -1,23 +1,35 @@
 {
   inputs = {
     gen.url = "github:sini/gen";
-    gen-algebra.url = "github:sini/gen-algebra";
+    gen-prelude.url = "github:sini/gen-prelude";
     gen-select.url = "github:sini/gen-select";
+    # nixpkgs is the CI runner's dependency (test harness, treefmt). gen-derive itself
+    # (../lib) takes only gen-prelude — see the purity remediation.
     nixpkgs.url = "https://channels.nixos.org/nixos-unstable/nixexprs.tar.xz";
   };
 
   outputs =
-    inputs@{ gen, nixpkgs, ... }:
+    inputs@{
+      gen,
+      gen-prelude,
+      gen-select,
+      ...
+    }:
     let
-      inherit (nixpkgs) lib;
-      genAlgebra = inputs.gen-algebra.lib;
-      genDerive = import ../lib { inherit lib genAlgebra; };
-      genSelect = import "${inputs.gen-select}/lib" { inherit lib genAlgebra; };
+      prelude = import "${gen-prelude}/lib" { };
+      genDerive = import ../lib { inherit prelude; };
+      genSelect = import "${gen-select}/lib" { };
+      # Intensional function constructor (Palmer §2.2) — test fixtures only. Inlined
+      # from the former gen-algebra.mkIntensional to keep gen-derive dependency-free.
+      mkIntensional = name: closure: fn: {
+        inherit name fn closure;
+        __functor = self: self.fn;
+      };
     in
     gen.lib.mkCi {
       inherit inputs;
       name = "gen-derive";
       testModules = ./tests;
-      specialArgs = { inherit genDerive genSelect genAlgebra; };
+      specialArgs = { inherit genDerive genSelect mkIntensional; };
     };
 }
