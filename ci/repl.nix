@@ -17,7 +17,7 @@ let
         narHash
         ;
     }
-  }/lib" { };
+  }/lib";
   genDerive = import ../lib { inherit prelude; };
 in
 {

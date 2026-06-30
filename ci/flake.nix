@@ -16,9 +16,9 @@
       ...
     }:
     let
-      prelude = import "${gen-prelude}/lib" { };
+      prelude = import "${gen-prelude}/lib";
       genDerive = import ../lib { inherit prelude; };
-      genSelect = import "${gen-select}/lib" { };
+      genSelect = import "${gen-select}/lib";
       # Intensional function constructor (Palmer §2.2) — test fixtures only. Inlined
       # from the former gen-algebra.mkIntensional to keep gen-derive dependency-free.
       mkIntensional = name: closure: fn: {
