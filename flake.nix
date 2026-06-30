@@ -10,10 +10,7 @@
 
   outputs =
     { gen-prelude, ... }:
-    let
-      genDerive = import ./lib { prelude = import "${gen-prelude}/lib" { }; };
-    in
     {
-      lib = genDerive;
+      lib = import ./lib { prelude = gen-prelude.lib; };
     };
 }
