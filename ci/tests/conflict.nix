@@ -145,8 +145,7 @@ in
 
     # E1 (∆-Nets analysis): equal-priority rules must resolve in a deterministic
     # total order (declaration order), independent of builtins.sort stability or
-    # rule-list enumeration order. See
-    # papers/den-architecture/gen-specs/DELTA-NETS-FOLLOWUPS.md item E1.
+    # rule-list enumeration order.
     test-equal-priority-deterministic =
       let
         mk =
