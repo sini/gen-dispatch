@@ -19,7 +19,7 @@ let
         if tagToPhase ? ${action.__action} then
           tagToPhase.${action.__action}
         else
-          throw "gen-derive: unknown action tag '${action.__action}'";
+          throw "gen-dispatch: unknown action tag '${action.__action}'";
     in
     constructors // { inherit classify; };
 in

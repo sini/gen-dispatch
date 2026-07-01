@@ -1,4 +1,4 @@
-# Purity invariant (gen-prelude design §5): gen-derive depends only on gen-prelude —
+# Purity invariant (gen-prelude design §5): gen-dispatch depends only on gen-prelude —
 # no nixpkgs.lib and no gen-algebra. This pins "pure" as a checked property: a stray
 # `lib.foo` / `lib.types` / `evalModules` / `genAlgebra` / nixpkgs input creeping back
 # into the library source fails CI.

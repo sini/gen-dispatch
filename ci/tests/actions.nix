@@ -1,6 +1,6 @@
-{ lib, genDerive, ... }:
+{ lib, genDispatch, ... }:
 let
-  fx = genDerive.mkActions {
+  fx = genDispatch.mkActions {
     structural = [
       "spawn"
       "enrich"

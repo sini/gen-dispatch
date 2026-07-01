@@ -1,7 +1,7 @@
 {
-  description = "gen-derive: relational rule dispatch over ordered phases (the dispatch STEP)";
+  description = "gen-dispatch: relational rule dispatch over ordered phases (the dispatch STEP)";
 
-  # gen-derive depends only on gen-prelude (pure, zero-input): builtins via prelude
+  # gen-dispatch depends only on gen-prelude (pure, zero-input): builtins via prelude
   # re-exports + the vendored imap0/unique. The former nixpkgs.lib and gen-algebra (dead)
   # dependencies are gone; the convergence LOOP (fixpoint) and phase ORDERING (topoSort/
   # entry*) were removed — they now live in gen-resolve and gen-graph respectively.

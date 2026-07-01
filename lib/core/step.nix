@@ -1,7 +1,7 @@
 # The dispatch STEP as a convergence-loop step function — the non-loop remnant of the
 # old fixpoint.nix (its per-pass action-merge fold). Driver-agnostic: it owns NO
 # iteration or convergence (that is the caller's loop, e.g. gen-scope.circular's Kleene
-# ascent). Prelude-only, so gen-derive stays nixpkgs-lib-free.
+# ascent). Prelude-only, so gen-dispatch stays nixpkgs-lib-free.
 #
 # `dispatchStep { dispatch } cfg` yields a `self: id: prev -> next` step whose shape
 # (self:id:prev) matches gen-scope.circular's `f: self: id`. The circular VALUE it

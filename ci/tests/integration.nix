@@ -1,18 +1,18 @@
 {
   lib,
-  genDerive,
+  genDispatch,
   genSelect,
   ...
 }:
 let
-  inherit (genDerive)
+  inherit (genDispatch)
     fromFunctionMatch
     mkRule
     mkActions
     override
     ;
   sel = genSelect;
-  adapter = genDerive.adapters.select;
+  adapter = genDispatch.adapters.select;
 in
 {
   flake.tests.integration = {
@@ -71,7 +71,7 @@ in
             })
           ];
 
-          r = genDerive.dispatch {
+          r = genDispatch.dispatch {
             inherit rules;
             id = null;
             context = {
@@ -137,7 +137,7 @@ in
             ancestors = _: [ ];
             siblings = _: [ ];
           };
-          r = genDerive.dispatch {
+          r = genDispatch.dispatch {
             rules = [
               (mkRule {
                 condition = sel.attrs {
@@ -185,7 +185,7 @@ in
             identity = "custom";
           });
 
-          r = genDerive.dispatch {
+          r = genDispatch.dispatch {
             rules = [
               baseRule
               customRule

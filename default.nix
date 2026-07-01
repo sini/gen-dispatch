@@ -1,6 +1,6 @@
 # Standalone (non-flake) entry. Flake consumers should use the `.lib` output.
 #
-# gen-derive depends only on gen-prelude; this shim derives it from the pinned
+# gen-dispatch depends only on gen-prelude; this shim derives it from the pinned
 # flake.lock (content-addressed via narHash, so it stays pure) and needs no
 # `<nixpkgs>`. Pass `prelude` to override.
 {

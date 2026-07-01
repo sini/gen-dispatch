@@ -15,7 +15,7 @@ let
   override =
     original: replacement:
     if original.identity == null then
-      throw "gen-derive: cannot override anonymous rule"
+      throw "gen-dispatch: cannot override anonymous rule"
     else
       replacement
       // {

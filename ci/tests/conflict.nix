@@ -1,10 +1,10 @@
 {
   lib,
-  genDerive,
+  genDispatch,
   ...
 }:
 let
-  inherit (genDerive)
+  inherit (genDispatch)
     dispatch
     mkRule
     fromFunctionMatch

@@ -1,14 +1,14 @@
-# gen-derive
+# gen-dispatch
 
-[![CI](https://github.com/sini/gen-derive/actions/workflows/ci.yml/badge.svg)](https://github.com/sini/gen-derive/actions/workflows/ci.yml) [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT) [![Sponsor](https://img.shields.io/badge/Sponsor-%E2%9D%A4-pink?logo=github)](https://github.com/sponsors/sini)
+[![CI](https://github.com/sini/gen-dispatch/actions/workflows/ci.yml/badge.svg)](https://github.com/sini/gen-dispatch/actions/workflows/ci.yml) [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT) [![Sponsor](https://img.shields.io/badge/Sponsor-%E2%9D%A4-pink?logo=github)](https://github.com/sponsors/sini)
 
 Relational rule dispatch — the guard→effect **dispatch step**, implemented as a pure Nix library.
 
-gen-derive is a **production rule system** (Forgy, 1982) with **stratified phases** (Arntzenius & Krishnaswami, 2016) and **algebraic graph rewriting** vocabulary (Ehrig et al., 2006). Given rules (condition + action producer), a position, and a context, gen-derive answers: "which rules fire here, and what actions do they produce?" It owns dispatch, conflict resolution, and rule dedup over a caller-supplied phase order — all rules in phase N complete before phase N+1 begins, with context threaded between phases. Actions are opaque -- the vocabulary belongs to the consumer.
+gen-dispatch is a **production rule system** (Forgy, 1982) with **stratified phases** (Arntzenius & Krishnaswami, 2016) and **algebraic graph rewriting** vocabulary (Ehrig et al., 2006). Given rules (condition + action producer), a position, and a context, gen-dispatch answers: "which rules fire here, and what actions do they produce?" It owns dispatch, conflict resolution, and rule dedup over a caller-supplied phase order — all rules in phase N complete before phase N+1 begins, with context threaded between phases. Actions are opaque -- the vocabulary belongs to the consumer.
 
-gen-derive is one dispatch **step**. Two neighbouring concerns are deliberately *not* here: the convergence **loop** that iterates dispatch to a fixpoint (a circular attribute's Kleene ascent) belongs to [gen-resolve](https://github.com/sini/gen-resolve) / `gen-scope.circular`, and phase **ordering** (turning `before`/`after` constraints into a linear order) belongs to [gen-graph](https://github.com/sini/gen-graph) (`phaseOrder`). The loop⊥step split is proven byte-identical in `gen-resolve/spike/gen-derive-loop-step/`.
+gen-dispatch is one dispatch **step**. Two neighbouring concerns are deliberately *not* here: the convergence **loop** that iterates dispatch to a fixpoint (a circular attribute's Kleene ascent) belongs to [gen-resolve](https://github.com/sini/gen-resolve) / `gen-scope.circular`, and phase **ordering** (turning `before`/`after` constraints into a linear order) belongs to [gen-graph](https://github.com/sini/gen-graph) (`phaseOrder`). The loop⊥step split is proven byte-identical in `gen-resolve/spike/gen-derive-loop-step/`.
 
-gen-derive is generic. It has no knowledge of NixOS, aspects, policies, or system configuration. It provides dispatch machinery; consumers define what to compute.
+gen-dispatch is generic. It has no knowledge of NixOS, aspects, policies, or system configuration. It provides dispatch machinery; consumers define what to compute.
 
 ## Table of Contents
 
@@ -24,7 +24,7 @@ gen-derive is generic. It has no knowledge of NixOS, aspects, policies, or syste
 
 ## Core Insight
 
-The hard part of rule dispatch is the generic guard→effect protocol: rules declare what they need, and the engine handles when and how they fire (match, NAC, priority, override, phase threading). Hand-rolling this caused PRs 408-437 in den (all context-threading regressions). gen-derive extracts the protocol as one dispatch **step**. Wrapping repeated steps into a fixpoint — extract feedback, widen context, re-dispatch until stable — is a *separable* concern owned by gen-resolve (`gen-scope.circular`'s Kleene ascent); pair a step with a loop via `dispatchStep` / `dispatchInit`.
+The hard part of rule dispatch is the generic guard→effect protocol: rules declare what they need, and the engine handles when and how they fire (match, NAC, priority, override, phase threading). Hand-rolling this caused PRs 408-437 in den (all context-threading regressions). gen-dispatch extracts the protocol as one dispatch **step**. Wrapping repeated steps into a fixpoint — extract feedback, widen context, re-dispatch until stable — is a *separable* concern owned by gen-resolve (`gen-scope.circular`'s Kleene ascent); pair a step with a loop via `dispatchStep` / `dispatchInit`.
 
 ## Terminology
 
@@ -49,21 +49,21 @@ The hard part of rule dispatch is the generic guard→effect protocol: rules dec
 | [gen-scope](https://github.com/sini/gen-scope) | Scope graphs (construction, evaluation, resolution) |
 | [gen-select](https://github.com/sini/gen-select) | Selector algebra (pattern matching over graph positions) |
 | [gen-bind](https://github.com/sini/gen-bind) | Module binding (inject args into NixOS modules) |
-| [gen-derive](https://github.com/sini/gen-derive) | Rule dispatch STEP (stratified phases, conflict resolution) |
+| [gen-dispatch](https://github.com/sini/gen-dispatch) | Rule dispatch STEP (stratified phases, conflict resolution) |
 
 ## Usage
 
 ```nix
 # flake.nix
 {
-  inputs.gen-derive.url = "github:sini/gen-derive";
-  outputs = { gen-derive, ... }:
-    let derive = gen-derive.lib;      # takes only gen-prelude, transitively
+  inputs.gen-dispatch.url = "github:sini/gen-dispatch";
+  outputs = { gen-dispatch, ... }:
+    let derive = gen-dispatch.lib;      # takes only gen-prelude, transitively
     in { /* ... */ };
 }
 
 # Or without flakes (standalone shim pins gen-prelude from the lock):
-let derive = import ./gen-derive;
+let derive = import ./gen-dispatch;
 in { /* ... */ }
 ```
 
@@ -75,10 +75,10 @@ phases in that order:
 
 ```nix
 let
-  derive = gen-derive.lib;
+  derive = gen-dispatch.lib;
   graph  = gen-graph.lib;
 
-  # Define action vocabulary -- gen-derive classifies but doesn't interpret
+  # Define action vocabulary -- gen-dispatch classifies but doesn't interpret
   fx = derive.mkActions {
     structural = [ "spawn" "enrich" ];
     resolution = [ "edge" ];
@@ -123,7 +123,7 @@ in
 ```
 
 **When you need a convergence loop** (genuinely cyclic rules that must iterate to a
-fixpoint), the LOOP is gen-resolve's, not gen-derive's — wrap the step with
+fixpoint), the LOOP is gen-resolve's, not gen-dispatch's — wrap the step with
 `gen-scope.circular`:
 
 ```nix
@@ -144,12 +144,12 @@ This composition is proven byte-identical to the retired `fixpoint` in
 
 ## Two-Tier Architecture
 
-gen-derive follows gen-algebra's pure/lib two-tier model:
+gen-dispatch follows gen-algebra's pure/lib two-tier model:
 
 - **Core tier** -- depends on gen-algebra pure tier only. Conditions are opaque; caller provides `match : condition -> id -> ctx -> bool`.
-- **Adapter tier** -- imports gen-select. Bridges gen-select selectors into gen-derive conditions with `mkMatch` and `selectorSpecificity`.
+- **Adapter tier** -- imports gen-select. Bridges gen-select selectors into gen-dispatch conditions with `mkMatch` and `selectorSpecificity`.
 
-Consumers without gen-select can use gen-derive with custom match functions. Consumers with gen-select get selector pattern matching and CSS-like specificity for conflict resolution.
+Consumers without gen-select can use gen-dispatch with custom match functions. Consumers with gen-select get selector pattern matching and CSS-like specificity for conflict resolution.
 
 ## API Reference
 
@@ -177,7 +177,7 @@ One-shot dispatch. Fires all matching rules in the supplied `phaseOrder` — low
 
 ### `dispatchStep` / `dispatchInit` (convergence step)
 
-The convergence LOOP is not gen-derive's — it belongs to gen-resolve (`gen-scope.circular`'s Kleene ascent). gen-derive supplies the loop's STEP: a `dispatch` pass that threads `fired` and accumulates actions across passes.
+The convergence LOOP is not gen-dispatch's — it belongs to gen-resolve (`gen-scope.circular`'s Kleene ascent). gen-dispatch supplies the loop's STEP: a `dispatch` pass that threads `fired` and accumulates actions across passes.
 
 ```nix
 dispatchStep { dispatch } cfg   # -> (self: id: prev -> next)   # cfg = dispatch args minus context/fired
@@ -261,7 +261,7 @@ derive.chain { extract; } ruleA ruleB
 
 ### Phase ordering (moved to gen-graph)
 
-Phase ordering is no longer gen-derive's concern. Build the `phaseOrder` list with
+Phase ordering is no longer gen-dispatch's concern. Build the `phaseOrder` list with
 [`gen-graph.phaseOrder`](https://github.com/sini/gen-graph) over `before`/`after` entries
 and pass it to `dispatch`:
 
@@ -276,7 +276,7 @@ graph.phaseOrder {
 ### Adapter: gen-select Bridge
 
 ```nix
-# Bridge gen-select selectors as gen-derive conditions
+# Bridge gen-select selectors as gen-dispatch conditions
 match = derive.adapters.select.mkMatch genSelect;
 
 # CSS-like specificity counting for conflict resolution

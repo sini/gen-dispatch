@@ -1,6 +1,6 @@
-# gen-derive REPL — all exports in scope. Run: nix repl --impure --file ci/repl.nix
+# gen-dispatch REPL — all exports in scope. Run: nix repl --impure --file ci/repl.nix
 #
-# gen-derive is built from gen-prelude (nixpkgs-lib-free); prelude is resolved from the
+# gen-dispatch is built from gen-prelude (nixpkgs-lib-free); prelude is resolved from the
 # ci flake.lock. nixpkgs `lib` is still exposed for interactive convenience.
 let
   nixpkgs = import (builtins.getFlake "nixpkgs") { };
@@ -18,9 +18,9 @@ let
         ;
     }
   }/lib";
-  genDerive = import ../lib { inherit prelude; };
+  genDispatch = import ../lib { inherit prelude; };
 in
 {
-  inherit lib prelude genDerive;
+  inherit lib prelude genDispatch;
 }
-// genDerive
+// genDispatch

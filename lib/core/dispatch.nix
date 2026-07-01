@@ -2,7 +2,7 @@
 # threading the context phase->phase via extract/combine. Within each phase: match,
 # resolve overrides (accumulated FORWARD across phases) + priority/exclusive, fire,
 # classify-validate, group. Single/degenerate phase + identity extract/combine
-# reproduces the prior single-pass behavior exactly. Phase ORDERING is not gen-derive's
+# reproduces the prior single-pass behavior exactly. Phase ORDERING is not gen-dispatch's
 # concern — the caller pre-orders (e.g. gen-graph.phaseOrder over an entry* DAG).
 { prelude }:
 let
@@ -40,7 +40,7 @@ let
               if multiPhase then
                 (
                   if r.phase == null then
-                    throw "gen-derive: rule \"${ruleName r}\" has no phase but dispatch is stratified over [${builtins.concatStringsSep ", " phaseOrder}]"
+                    throw "gen-dispatch: rule \"${ruleName r}\" has no phase but dispatch is stratified over [${builtins.concatStringsSep ", " phaseOrder}]"
                   else
                     r.phase == phaseName
                 )
@@ -97,9 +97,9 @@ let
               actionPhases = unique (map classify res.actions);
             in
             if builtins.length actionPhases > 1 then
-              throw "gen-derive: rule \"${ruleName res}\" produced actions in multiple phases: ${builtins.concatStringsSep ", " actionPhases}"
+              throw "gen-dispatch: rule \"${ruleName res}\" produced actions in multiple phases: ${builtins.concatStringsSep ", " actionPhases}"
             else if multiPhase && res.actions != [ ] && builtins.head actionPhases != phaseName then
-              throw "gen-derive: rule \"${ruleName res}\" declared phase \"${phaseName}\" but produced \"${builtins.head actionPhases}\" actions"
+              throw "gen-dispatch: rule \"${ruleName res}\" declared phase \"${phaseName}\" but produced \"${builtins.head actionPhases}\" actions"
             else
               res
           ) results;

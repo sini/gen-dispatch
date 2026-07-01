@@ -1,12 +1,12 @@
 {
   lib,
-  genDerive,
+  genDispatch,
   genSelect,
   ...
 }:
 let
   sel = genSelect;
-  adapter = genDerive.adapters.select;
+  adapter = genDispatch.adapters.select;
   match = adapter.mkMatch genSelect;
   mockCtx = {
     data =

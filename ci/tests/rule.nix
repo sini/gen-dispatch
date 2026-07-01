@@ -1,11 +1,11 @@
 {
   lib,
-  genDerive,
+  genDispatch,
   mkIntensional,
   ...
 }:
 let
-  inherit (genDerive) mkRule fromFunction fromFunctionMatch;
+  inherit (genDispatch) mkRule fromFunction fromFunctionMatch;
   mkI = mkIntensional;
 in
 {
