@@ -1,9 +1,10 @@
-# One-shot stratified dispatch: walk phases in topoSort order, threading the
-# context phase->phase via extract/combine. Within each phase: match, resolve
-# overrides (accumulated FORWARD across phases) + priority/exclusive, fire,
+# One-shot stratified dispatch: walk phases in the caller-supplied `phaseOrder`,
+# threading the context phase->phase via extract/combine. Within each phase: match,
+# resolve overrides (accumulated FORWARD across phases) + priority/exclusive, fire,
 # classify-validate, group. Single/degenerate phase + identity extract/combine
-# reproduces the prior single-pass behavior exactly.
-{ prelude, dag }:
+# reproduces the prior single-pass behavior exactly. Phase ORDERING is not gen-derive's
+# concern — the caller pre-orders (e.g. gen-graph.phaseOrder over an entry* DAG).
+{ prelude }:
 let
   inherit (prelude)
     filter
@@ -20,20 +21,13 @@ let
       context,
       match,
       classify,
-      phases,
+      phaseOrder,
       exclusive ? false,
       fired ? { },
       extract ? (_actions: { }),
       combine ? (ctx: _delta: ctx),
     }:
     let
-      sortedPhases = dag.topoSort phases;
-      phaseOrder =
-        if sortedPhases ? result then
-          map (e: e.name) sortedPhases.result
-        else
-          throw "gen-derive: phases DAG has a cycle: ${builtins.toJSON sortedPhases}";
-
       multiPhase = builtins.length phaseOrder > 1;
       ruleName = r: if r.identity != null then r.identity else "anonymous";
 

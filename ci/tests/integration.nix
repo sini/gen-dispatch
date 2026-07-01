@@ -2,27 +2,26 @@
   lib,
   genDerive,
   genSelect,
-  mkIntensional,
   ...
 }:
 let
   inherit (genDerive)
-    fixpoint
-    fromFunction
     fromFunctionMatch
     mkRule
     mkActions
-    entryAnywhere
-    entryAfter
     override
     ;
-  mkI = mkIntensional;
   sel = genSelect;
   adapter = genDerive.adapters.select;
 in
 {
   flake.tests.integration = {
-    # Den-like scenario: 3 phases, enrichment convergence, override
+    # Den-like scenario: 3 stratified phases, enrich->resolution cascade threaded
+    # phase->phase WITHIN one dispatch pass (via extract/combine). The convergence LOOP
+    # that fixpoint used to wrap this now belongs to gen-resolve (gen-scope.circular);
+    # the single pass already yields the terminal actions because the cascade is a
+    # monotone forward stratum fold — see gen-resolve/spike/gen-derive-loop-step for the
+    # byte-identical loop==circular∘dispatch equivalence proof.
     test-den-like-scenario = {
       expr =
         let
@@ -72,8 +71,9 @@ in
             })
           ];
 
-          r = fixpoint {
+          r = genDerive.dispatch {
             inherit rules;
+            id = null;
             context = {
               host = {
                 name = "igloo";
@@ -81,29 +81,26 @@ in
             };
             match = fromFunctionMatch;
             classify = fx.classify;
-            phases = {
-              structural = entryAnywhere { };
-              resolution = entryAfter [ "structural" ] { };
-              collection = entryAfter [ "resolution" ] { };
-            };
+            phaseOrder = [
+              "structural"
+              "resolution"
+              "collection"
+            ];
             extract =
               actions:
               lib.foldl' (acc: a: if a.__action == "enrich" then acc // { ${a.key} = a.value; } else acc) { } (
                 actions.structural or [ ]
               );
             combine = ctx: ext: ctx // ext;
-            eq = a: b: builtins.attrNames a == builtins.attrNames b;
           };
         in
         {
-          inherit (r) iterations;
           phases = builtins.sort builtins.lessThan (builtins.attrNames r.actions);
           structuralCount = builtins.length (r.actions.structural or [ ]);
           resolutionCount = builtins.length (r.actions.resolution or [ ]);
           collectionCount = builtins.length (r.actions.collection or [ ]);
         };
       expected = {
-        iterations = 2;
         phases = [
           "collection"
           "resolution"
@@ -155,9 +152,7 @@ in
             context = mockCtx;
             inherit match;
             classify = fx.classify;
-            phases = {
-              default = entryAnywhere { };
-            };
+            phaseOrder = [ "default" ];
           };
         in
         r.actions.default;
@@ -169,8 +164,8 @@ in
       ];
     };
 
-    # Override + fixpoint integration
-    test-override-in-fixpoint = {
+    # Override integration (single dispatch — the override suppresses the base rule)
+    test-override-in-dispatch = {
       expr =
         let
           fx = mkActions { default = [ "act" ]; };
@@ -190,22 +185,18 @@ in
             identity = "custom";
           });
 
-          r = fixpoint {
+          r = genDerive.dispatch {
             rules = [
               baseRule
               customRule
             ];
+            id = null;
             context = {
               host = { };
             };
             match = fromFunctionMatch;
             classify = fx.classify;
-            phases = {
-              default = entryAnywhere { };
-            };
-            extract = _: { };
-            combine = ctx: _: ctx;
-            eq = _: _: true;
+            phaseOrder = [ "default" ];
           };
         in
         map (a: a.v) (r.actions.default or [ ]);

@@ -10,13 +10,10 @@ let
     fromFunctionMatch
     mkRule
     mkActions
-    entryAnywhere
     ;
   fx = mkActions { default = [ "act" ]; };
   match = fromFunctionMatch;
-  phases = {
-    default = entryAnywhere { };
-  };
+  phaseOrder = [ "default" ];
 in
 {
   flake.tests.dispatch-basic = {
@@ -29,7 +26,7 @@ in
             context = {
               host = { };
             };
-            inherit match phases;
+            inherit match phaseOrder;
             classify = fx.classify;
           };
         in
@@ -51,7 +48,7 @@ in
             rules = [ (fromFunction ({ host, ... }: [ (fx.act { }) ])) ];
             id = "x";
             context = { };
-            inherit match phases;
+            inherit match phaseOrder;
             classify = fx.classify;
           };
         in
@@ -71,7 +68,7 @@ in
             context = {
               host = { };
             };
-            inherit match phases;
+            inherit match phaseOrder;
             classify = fx.classify;
           };
         in
@@ -105,7 +102,7 @@ in
             context = {
               host = { };
             };
-            inherit match phases;
+            inherit match phaseOrder;
             classify = fx.classify;
           };
         in
@@ -124,7 +121,7 @@ in
             context = {
               host = { };
             };
-            inherit match phases;
+            inherit match phaseOrder;
             classify = fx.classify;
           };
         in

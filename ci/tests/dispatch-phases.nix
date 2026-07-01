@@ -5,22 +5,24 @@ let
     mkRule
     fromFunctionMatch
     mkActions
-    entryAnywhere
-    entryAfter
     ;
   fx = mkActions {
     structural = [ "spawn" ];
     resolution = [ "edge" ];
   };
   match = fromFunctionMatch;
-  phases = {
-    structural = entryAnywhere { };
-    resolution = entryAfter [ "structural" ] { };
-  };
+  # caller supplies the pre-ordered phase list (gen-graph.phaseOrder's job); dispatch
+  # walks it, it does not sort.
+  phaseOrder = [
+    "structural"
+    "resolution"
+  ];
 in
 {
   flake.tests.dispatch-phases = {
-    test-ordered-phases-topological = {
+    # dispatch no longer sorts — orderedPhases is the present-only subsequence of the
+    # caller-supplied phaseOrder (phase ordering is gen-graph.phaseOrder's concern).
+    test-ordered-phases-present-subsequence = {
       expr =
         (dispatch {
           rules = [
@@ -43,7 +45,7 @@ in
           context = {
             host = { };
           };
-          inherit match phases;
+          inherit match phaseOrder;
           classify = fx.classify;
         }).orderedPhases;
       expected = [
@@ -76,7 +78,7 @@ in
             context = {
               host = { };
             };
-            inherit match phases;
+            inherit match phaseOrder;
             classify = fx.classify;
           };
         in
@@ -110,7 +112,7 @@ in
             context = {
               host = { };
             };
-            inherit match phases;
+            inherit match phaseOrder;
             classify = fx.classify;
             extract = actions: if (actions.structural or [ ]) != [ ] then { flag = true; } else { };
             combine = ctx: ext: ctx // ext;
@@ -147,7 +149,7 @@ in
             context = {
               host = { };
             };
-            inherit match phases;
+            inherit match phaseOrder;
             classify = fx.classify;
           };
         in
@@ -171,7 +173,7 @@ in
           context = {
             host = { };
           };
-          inherit match phases;
+          inherit match phaseOrder;
           classify = fx.classify;
         }) true
       );
@@ -196,7 +198,7 @@ in
           context = {
             host = { };
           };
-          inherit match phases;
+          inherit match phaseOrder;
           classify = fx.classify;
         }) true
       );
@@ -225,7 +227,7 @@ in
           context = {
             host = { };
           };
-          inherit match phases;
+          inherit match phaseOrder;
           classify = fx.classify;
         }) true
       );
@@ -254,9 +256,7 @@ in
             };
             inherit match;
             classify = fx1.classify;
-            phases = {
-              default = entryAnywhere { };
-            };
+            phaseOrder = [ "default" ];
           };
         in
         {

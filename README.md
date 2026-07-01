@@ -2,9 +2,11 @@
 
 [![CI](https://github.com/sini/gen-derive/actions/workflows/ci.yml/badge.svg)](https://github.com/sini/gen-derive/actions/workflows/ci.yml) [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT) [![Sponsor](https://img.shields.io/badge/Sponsor-%E2%9D%A4-pink?logo=github)](https://github.com/sponsors/sini)
 
-Stratified rule dispatch engine with fixpoint convergence, implemented as a pure Nix library.
+Relational rule dispatch — the guard→effect **dispatch step**, implemented as a pure Nix library.
 
-gen-derive is a **production rule system** (Forgy, 1982) with **stratified phases** (Arntzenius & Krishnaswami, 2016) and **algebraic graph rewriting** vocabulary (Ehrig et al., 2006). Given rules (condition + action producer), a position, and a context, gen-derive answers: "which rules fire here, and what actions do they produce?" It owns dispatch, fixpoint convergence, conflict resolution, and rule dedup. Dispatch processes phases in topological order — all rules in phase N complete before phase N+1 begins, with context threaded between phases. Actions are opaque -- the vocabulary belongs to the consumer.
+gen-derive is a **production rule system** (Forgy, 1982) with **stratified phases** (Arntzenius & Krishnaswami, 2016) and **algebraic graph rewriting** vocabulary (Ehrig et al., 2006). Given rules (condition + action producer), a position, and a context, gen-derive answers: "which rules fire here, and what actions do they produce?" It owns dispatch, conflict resolution, and rule dedup over a caller-supplied phase order — all rules in phase N complete before phase N+1 begins, with context threaded between phases. Actions are opaque -- the vocabulary belongs to the consumer.
+
+gen-derive is one dispatch **step**. Two neighbouring concerns are deliberately *not* here: the convergence **loop** that iterates dispatch to a fixpoint (a circular attribute's Kleene ascent) belongs to [gen-resolve](https://github.com/sini/gen-resolve) / `gen-scope.circular`, and phase **ordering** (turning `before`/`after` constraints into a linear order) belongs to [gen-graph](https://github.com/sini/gen-graph) (`phaseOrder`). The loop⊥step split is proven byte-identical in `gen-resolve/spike/gen-derive-loop-step/`.
 
 gen-derive is generic. It has no knowledge of NixOS, aspects, policies, or system configuration. It provides dispatch machinery; consumers define what to compute.
 
@@ -22,7 +24,7 @@ gen-derive is generic. It has no knowledge of NixOS, aspects, policies, or syste
 
 ## Core Insight
 
-The hard part of rule dispatch is the convergence loop: dispatch rules, extract feedback, widen context, re-dispatch until stable. Hand-rolling this loop caused PRs 408-437 in den (all context-threading regressions). gen-derive extracts the generic protocol -- rules declare what they need, gen-derive handles when and how they fire.
+The hard part of rule dispatch is the generic guard→effect protocol: rules declare what they need, and the engine handles when and how they fire (match, NAC, priority, override, phase threading). Hand-rolling this caused PRs 408-437 in den (all context-threading regressions). gen-derive extracts the protocol as one dispatch **step**. Wrapping repeated steps into a fixpoint — extract feedback, widen context, re-dispatch until stable — is a *separable* concern owned by gen-resolve (`gen-scope.circular`'s Kleene ascent); pair a step with a loop via `dispatchStep` / `dispatchInit`.
 
 ## Terminology
 
@@ -33,7 +35,7 @@ The hard part of rule dispatch is the convergence loop: dispatch rules, extract 
 | Action | Opaque tagged value produced when a rule fires | Forgy 1982 (RETE RHS) |
 | Phase | Named dispatch group with DAG ordering | Arntzenius 2016 (stratification) |
 | Match | Testing a condition against a position | Ehrig 2006 (match morphism) |
-| Fixpoint | Convergent dispatch loop with monotone feedback | Arntzenius 2016; Radul 2009 |
+| Dispatch step | One guard→effect pass over ordered phases (the unit a convergence loop iterates) | Forgy 1982; Arntzenius 2016 |
 | NAC | Negative application condition -- pattern that must NOT match | Ehrig 2006 |
 
 ## Gen Ecosystem
@@ -47,7 +49,7 @@ The hard part of rule dispatch is the convergence loop: dispatch rules, extract 
 | [gen-scope](https://github.com/sini/gen-scope) | Scope graphs (construction, evaluation, resolution) |
 | [gen-select](https://github.com/sini/gen-select) | Selector algebra (pattern matching over graph positions) |
 | [gen-bind](https://github.com/sini/gen-bind) | Module binding (inject args into NixOS modules) |
-| [gen-derive](https://github.com/sini/gen-derive) | Rule dispatch (stratified phases, fixpoint, conflict resolution) |
+| [gen-derive](https://github.com/sini/gen-derive) | Rule dispatch STEP (stratified phases, conflict resolution) |
 
 ## Usage
 
@@ -55,24 +57,26 @@ The hard part of rule dispatch is the convergence loop: dispatch rules, extract 
 # flake.nix
 {
   inputs.gen-derive.url = "github:sini/gen-derive";
-  inputs.gen-algebra.url = "github:sini/gen-algebra";
-  outputs = { gen-derive, gen-algebra, nixpkgs, ... }:
-    let derive = gen-derive.lib;
+  outputs = { gen-derive, ... }:
+    let derive = gen-derive.lib;      # takes only gen-prelude, transitively
     in { /* ... */ };
 }
 
-# Or without flakes:
-let derive = import ./gen-derive { inherit lib; gen-algebra = import ./gen-algebra {}; };
+# Or without flakes (standalone shim pins gen-prelude from the lock):
+let derive = import ./gen-derive;
 in { /* ... */ }
 ```
 
 ## Example
 
-Policy-like rules that enrich context and produce typed actions across stratified phases:
+Policy-like rules that enrich context and produce typed actions across stratified phases.
+Ordering comes from `gen-graph.phaseOrder`; a single `dispatch` threads context between
+phases in that order:
 
 ```nix
 let
-  derive = import ./gen-derive { inherit lib; gen-algebra = import ./gen-algebra {}; };
+  derive = gen-derive.lib;
+  graph  = gen-graph.lib;
 
   # Define action vocabulary -- gen-derive classifies but doesn't interpret
   fx = derive.mkActions {
@@ -95,27 +99,48 @@ let
     })
   ];
 
-  result = derive.fixpoint {
+  cfg = {
     inherit rules;
-    context = { host = { name = "igloo"; }; };
+    id = null;
     match = derive.fromFunctionMatch;
     classify = fx.classify;
-    phases = {
-      structural = derive.entryAnywhere {};
-      resolution = derive.entryAfter [ "structural" ] {};
+    # phase ORDERING is gen-graph's job
+    phaseOrder = graph.phaseOrder {
+      structural = graph.entryAnywhere;
+      resolution = graph.entryAfter [ "structural" ];
     };
     extract = actions:
       lib.foldl' (acc: a:
         if a.__action == "enrich" then acc // { ${a.key} = a.value; } else acc
       ) {} (actions.structural or []);
     combine = ctx: ext: ctx // ext;
-    eq = a: b: builtins.attrNames a == builtins.attrNames b;
   };
-in {
-  result.iterations   # 2 (enrichment converges on second pass)
-  result.actions       # { structural = [ enrich, spawn ]; resolution = [ edge ]; }
-}
+
+  # One pass: the enrich→resolution cascade completes because context threads forward.
+  result = derive.dispatch (cfg // { context = { host = { name = "igloo"; }; }; });
+in
+  result.actions   # { structural = [ enrich, spawn ]; resolution = [ edge ]; }
 ```
+
+**When you need a convergence loop** (genuinely cyclic rules that must iterate to a
+fixpoint), the LOOP is gen-resolve's, not gen-derive's — wrap the step with
+`gen-scope.circular`:
+
+```nix
+let
+  scope = gen-scope.lib;
+  step  = derive.dispatchStep { inherit (derive) dispatch; } cfg;   # self:id:prev -> next
+in
+  (scope.circular {
+    init = derive.dispatchInit { host = { name = "igloo"; }; };     # { context; fired; accActions; ... }
+    eq   = a: b: builtins.attrNames a.context == builtins.attrNames b.context;
+  } step) {} null                                                    # -> { context; fired; accActions; ... }
+```
+
+`dispatchStep` threads `fired` (once-per-identity dedup) and accumulates actions across
+passes exactly as the old `fixpoint` did; `gen-scope.circular` drives the Kleene ascent.
+This composition is proven byte-identical to the retired `fixpoint` in
+`gen-resolve/spike/gen-derive-loop-step/`.
 
 ## Two-Tier Architecture
 
@@ -137,7 +162,7 @@ dispatch {
   context;            # caller-defined context
   match;              # condition -> id -> ctx -> bool
   classify;           # action -> phase name
-  phases;             # DAG of phase entries
+  phaseOrder;         # [ phaseName ] — pre-ordered (e.g. gen-graph.phaseOrder); dispatch does NOT sort
   exclusive ? false;  # only highest-priority group fires
   fired ? {};         # pre-seeded fired identity set
   extract ? (_: {});       # { phase = [action]; } -> ctx delta (per-phase threading; default no-op)
@@ -146,26 +171,20 @@ dispatch {
 -> { actions; orderedPhases; context; fired; }
 ```
 
-One-shot dispatch. Fires all matching rules in topological phase order — lower phases complete before higher phases begin, with context threaded between phases. Validates single-phase-per-rule constraint.
+One-shot dispatch. Fires all matching rules in the supplied `phaseOrder` — lower phases complete before higher phases begin, with context threaded between phases. Ordering is the caller's concern (`gen-graph.phaseOrder` builds it from `before`/`after` constraints); dispatch just walks the list. `orderedPhases` in the result is the present-only subsequence of `phaseOrder`. Validates single-phase-per-rule constraint.
 
-**Dispatch sequence:** walk `topoSort(phases)`; per phase — select this phase's rules (an unphased rule under multi-phase dispatch throws) -> NAC + condition match against the threaded context -> forward-accumulating override suppression (carries to later phases) -> priority sort -> exclusive filter -> fire -> classify-validate (single-phase-per-rule + declared-phase consistency) -> group -> thread context (`combine`/`extract`) into the next phase.
+**Dispatch sequence:** walk `phaseOrder`; per phase — select this phase's rules (an unphased rule under multi-phase dispatch throws) -> NAC + condition match against the threaded context -> forward-accumulating override suppression (carries to later phases) -> priority sort -> exclusive filter -> fire -> classify-validate (single-phase-per-rule + declared-phase consistency) -> group -> thread context (`combine`/`extract`) into the next phase.
 
-### `fixpoint`
+### `dispatchStep` / `dispatchInit` (convergence step)
+
+The convergence LOOP is not gen-derive's — it belongs to gen-resolve (`gen-scope.circular`'s Kleene ascent). gen-derive supplies the loop's STEP: a `dispatch` pass that threads `fired` and accumulates actions across passes.
 
 ```nix
-fixpoint {
-  rules; context; match; classify; phases;
-  extract;            # actions -> attrset (feedback from actions)
-  combine;            # old ctx -> extracted -> new ctx
-  eq;                 # old ctx -> new ctx -> bool (stability check)
-  id ? null;
-  exclusive ? false;
-  maxIter ? 100;
-}
--> { actions; orderedPhases; context; iterations; fired; }
+dispatchStep { dispatch } cfg   # -> (self: id: prev -> next)   # cfg = dispatch args minus context/fired
+dispatchInit context            # -> { context; fired = {}; accActions = {}; orderedPhases = []; }
 ```
 
-Convergent dispatch loop. Intra-pass phase threading lives in `dispatch` (passed `extract`/`combine`); `fixpoint` runs stratified passes and converges when the threaded context stabilizes (`eq ctx dispatch.context`), accumulating actions in `orderedPhases` order. Identified rules fire at most once across iterations (dedup via `fired` set); anonymous rules re-fire each iteration.
+The step's shape (`self: id: prev`) matches `gen-scope.circular`'s `f: self: id`; the threaded value is `{ context; fired; accActions; orderedPhases }`. `fired` carries once-per-identity dedup across passes; `accActions` accumulates with the exact fold the retired `fixpoint` used. Drive convergence with `gen-scope.circular { init = dispatchInit ctx; eq; } (dispatchStep { inherit dispatch; } cfg)`. Proven byte-identical to the old `fixpoint` — `gen-resolve/spike/gen-derive-loop-step/`.
 
 ### `mkRule`
 
@@ -240,14 +259,18 @@ derive.override original replacement
 derive.chain { extract; } ruleA ruleB
 ```
 
-### Phase DAG
+### Phase ordering (moved to gen-graph)
+
+Phase ordering is no longer gen-derive's concern. Build the `phaseOrder` list with
+[`gen-graph.phaseOrder`](https://github.com/sini/gen-graph) over `before`/`after` entries
+and pass it to `dispatch`:
 
 ```nix
-derive.entryAnywhere {}                    # no ordering constraints
-derive.entryAfter [ "structural" ] {}      # fires after named phases
-derive.entryBefore [ "collection" ] {}     # fires before named phases
-derive.entryBetween [ "c" ] [ "a" ] {}     # between two sets
-derive.topoSort phases                     # -> { result = [ { name; data; } ... ]; }
+graph.phaseOrder {
+  structural = graph.entryAnywhere;                 # no ordering constraints
+  resolution = graph.entryAfter  [ "structural" ];  # after named phases
+  collection = graph.entryBefore [ "teardown" ];    # before named phases
+}                                                   # -> a valid producers-first topo order
 ```
 
 ### Adapter: gen-select Bridge
@@ -264,12 +287,12 @@ derive.adapters.select.selectorSpecificity selector  # -> int
 
 ```bash
 cd ci
-just ci                    # run all 68 tests
+just ci                    # run all 54 tests
 just ci dispatch-basic     # run one suite
-just ci fixpoint.test-converge-two-iterations  # specific test
+just ci dispatch-phases.test-cross-phase-threading  # specific test
 ```
 
-Requires nix-unit. 68 tests across 11 suites.
+Requires nix-unit. 54 tests across 10 suites. (Iteration/convergence coverage lives cross-repo now: `gen-resolve/spike/gen-derive-loop-step/` proves the loop⊥step equivalence, and the gen-scope.circular Kleene ascent is tested in gen-scope.)
 
 ## Theoretical Foundations
 
@@ -277,9 +300,8 @@ Requires nix-unit. 68 tests across 11 suites.
 |-------|-------------|----------|
 | Forgy (1982) "RETE" | Implements | Condition-action rule dispatch; rule = condition + action production system |
 | Ehrig et al. (2006) "Fundamentals of Algebraic Graph Transformation" | Implements | Graph rewriting rules, negative application conditions as first-class `nac` field |
-| Arntzenius & Krishnaswami (2016) "Datafun" | **Implements** | Monotonic fixpoint with convergence check; stratified phases dispatched in topological order — all rules in phase N complete before phase N+1 begins, with context threaded between phases |
+| Arntzenius & Krishnaswami (2016) "Datafun" | **Implements** | Stratified phases: rules dispatched in a caller-supplied stratum order — all rules in phase N complete before phase N+1 begins, with context threaded between phases. (The monotone *fixpoint* reading — iterating dispatch to convergence — moved with the loop to gen-resolve.) |
 | Palmer et al. (2024) "Intensional Functions" | Implements | Rule identity via `mkIntensional` detection (four-predicate check: `isAttrs` + `name`/`__functor`/`closure`), dedup |
-| Radul & Sussman (2009) "Art of the Propagator" | Informed by | Monotonic convergence model; quiescence as stability criterion for fixpoint loop |
 | Hedin & Magnusson (2003) "JastAdd" | Informed by | Open action types with framework-owned dispatch; aspect-oriented modular attribution |
 | Batory (2005) "AHEAD" | Informed by | Feature composition model inspires `restrict`/`override`/`chain` rule combinators |
 | Berry & Boudol (1990) "Chemical Abstract Machine" | Informed by | Rules as reactions producing transformations; multiset rewriting as dispatch metaphor |
