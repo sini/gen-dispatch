@@ -8,7 +8,7 @@
 # threads is `{ context; fired; accActions; orderedPhases }`: `fired` carried across
 # passes (once-per-identity dedup), `accActions` accumulated with the exact fold the old
 # fixpoint used. Pair it with `dispatchInit ctx` for the seed. Proven byte-identical to
-# the old `fixpoint` on the den path — gen-resolve/spike/gen-derive-loop-step/spike.nix.
+# the old `fixpoint` on the den path by the loop⊥step equivalence spike.
 { prelude }:
 let
   inherit (prelude) foldl';

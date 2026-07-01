@@ -69,8 +69,7 @@ let
           # Total-order sort: priority descending, ties broken deterministically
           # by declaration order, so the fired set never depends on builtins.sort
           # stability or rule-list enumeration order. Surfaced by the ∆-Nets
-          # analysis (equal-priority + `exclusive` ties were order-sensitive); see
-          # papers/den-architecture/gen-specs/DELTA-NETS-FOLLOWUPS.md item E1.
+          # analysis (equal-priority + `exclusive` ties were order-sensitive).
           sorted = map (x: x.r) (
             sort (a: b: if a.r.priority != b.r.priority then a.r.priority > b.r.priority else a.i < b.i) (
               imap0 (i: r: { inherit i r; }) matched
