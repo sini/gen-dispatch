@@ -11,18 +11,18 @@ let
     resolution = [ "edge" ];
   };
   match = fromFunctionMatch;
-  # caller supplies the pre-ordered phase list (gen-graph.phaseOrder's job); dispatch
-  # walks it, it does not sort.
-  phaseOrder = [
+  # caller supplies the pre-ordered group list (gen-graph's job); dispatch walks it,
+  # it does not sort.
+  groupOrder = [
     "structural"
     "resolution"
   ];
 in
 {
-  flake.tests.dispatch-phases = {
-    # dispatch no longer sorts — orderedPhases is the present-only subsequence of the
-    # caller-supplied phaseOrder (phase ordering is gen-graph.phaseOrder's concern).
-    test-ordered-phases-present-subsequence = {
+  flake.tests.dispatch-groups = {
+    # dispatch no longer sorts — orderedGroups is the present-only subsequence of the
+    # caller-supplied groupOrder (group ordering is gen-graph's concern).
+    test-ordered-groups-present-subsequence = {
       expr =
         (dispatch {
           rules = [
@@ -30,14 +30,14 @@ in
               condition = {
                 host = false;
               };
-              phase = "structural";
+              group = "structural";
               produce = _: _: [ (fx.spawn { }) ];
             })
             (mkRule {
               condition = {
                 host = false;
               };
-              phase = "resolution";
+              group = "resolution";
               produce = _: _: [ (fx.edge { }) ];
             })
           ];
@@ -45,16 +45,16 @@ in
           context = {
             host = { };
           };
-          inherit match phaseOrder;
+          inherit match groupOrder;
           classify = fx.classify;
-        }).orderedPhases;
+        }).orderedGroups;
       expected = [
         "structural"
         "resolution"
       ];
     };
 
-    test-actions-grouped-by-phase = {
+    test-actions-grouped-by-group = {
       expr =
         let
           r = dispatch {
@@ -63,14 +63,14 @@ in
                 condition = {
                   host = false;
                 };
-                phase = "structural";
+                group = "structural";
                 produce = _: _: [ (fx.spawn { }) ];
               })
               (mkRule {
                 condition = {
                   host = false;
                 };
-                phase = "resolution";
+                group = "resolution";
                 produce = _: _: [ (fx.edge { }) ];
               })
             ];
@@ -78,7 +78,7 @@ in
             context = {
               host = { };
             };
-            inherit match phaseOrder;
+            inherit match groupOrder;
             classify = fx.classify;
           };
         in
@@ -86,7 +86,7 @@ in
       expected = 2;
     };
 
-    test-cross-phase-threading = {
+    test-cross-group-threading = {
       expr =
         let
           r = dispatch {
@@ -95,7 +95,7 @@ in
                 condition = {
                   host = false;
                 };
-                phase = "structural";
+                group = "structural";
                 produce = _: _: [ (fx.spawn { }) ];
                 identity = "s";
               })
@@ -103,7 +103,7 @@ in
                 condition = {
                   flag = false;
                 };
-                phase = "resolution";
+                group = "resolution";
                 produce = _: _: [ (fx.edge { }) ];
                 identity = "r";
               })
@@ -112,7 +112,7 @@ in
             context = {
               host = { };
             };
-            inherit match phaseOrder;
+            inherit match groupOrder;
             classify = fx.classify;
             extract = actions: if (actions.structural or [ ]) != [ ] then { flag = true; } else { };
             combine = ctx: ext: ctx // ext;
@@ -131,7 +131,7 @@ in
                 condition = {
                   host = false;
                 };
-                phase = "structural";
+                group = "structural";
                 produce = _: _: [ (fx.spawn { }) ];
                 identity = "s";
                 overrides = [ "r" ];
@@ -140,7 +140,7 @@ in
                 condition = {
                   host = false;
                 };
-                phase = "resolution";
+                group = "resolution";
                 produce = _: _: [ (fx.edge { }) ];
                 identity = "r";
               })
@@ -149,7 +149,7 @@ in
             context = {
               host = { };
             };
-            inherit match phaseOrder;
+            inherit match groupOrder;
             classify = fx.classify;
           };
         in
@@ -157,7 +157,7 @@ in
       expected = [ ];
     };
 
-    test-phase-consistency-error = {
+    test-group-consistency-error = {
       expr = builtins.tryEval (
         builtins.deepSeq (dispatch {
           rules = [
@@ -165,7 +165,7 @@ in
               condition = {
                 host = false;
               };
-              phase = "structural";
+              group = "structural";
               produce = _: _: [ (fx.edge { }) ];
             })
           ];
@@ -173,7 +173,7 @@ in
           context = {
             host = { };
           };
-          inherit match phaseOrder;
+          inherit match groupOrder;
           classify = fx.classify;
         }) true
       );
@@ -183,7 +183,7 @@ in
       };
     };
 
-    test-missing-phase-error = {
+    test-missing-group-error = {
       expr = builtins.tryEval (
         builtins.deepSeq (dispatch {
           rules = [
@@ -198,7 +198,7 @@ in
           context = {
             host = { };
           };
-          inherit match phaseOrder;
+          inherit match groupOrder;
           classify = fx.classify;
         }) true
       );
@@ -208,7 +208,7 @@ in
       };
     };
 
-    test-multi-phase-rule-error = {
+    test-multi-group-rule-error = {
       expr = builtins.tryEval (
         builtins.deepSeq (dispatch {
           rules = [
@@ -216,7 +216,7 @@ in
               condition = {
                 host = false;
               };
-              phase = "structural";
+              group = "structural";
               produce = _: _: [
                 (fx.spawn { })
                 (fx.edge { })
@@ -227,7 +227,7 @@ in
           context = {
             host = { };
           };
-          inherit match phaseOrder;
+          inherit match groupOrder;
           classify = fx.classify;
         }) true
       );
@@ -237,7 +237,7 @@ in
       };
     };
 
-    test-single-phase-backward-compat = {
+    test-single-group-backward-compat = {
       expr =
         let
           fx1 = mkActions { default = [ "act" ]; };
@@ -256,15 +256,15 @@ in
             };
             inherit match;
             classify = fx1.classify;
-            phaseOrder = [ "default" ];
+            groupOrder = [ "default" ];
           };
         in
         {
-          p = r.orderedPhases;
+          g = r.orderedGroups;
           n = builtins.length r.actions.default;
         };
       expected = {
-        p = [ "default" ];
+        g = [ "default" ];
         n = 1;
       };
     };

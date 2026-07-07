@@ -158,22 +158,22 @@ in
       expected = false;
     };
 
-    test-mkRule-phase = {
+    test-mkRule-group = {
       expr =
         (mkRule {
           condition = { };
           produce = _: _: [ ];
-          phase = "structural";
-        }).phase;
+          group = "structural";
+        }).group;
       expected = "structural";
     };
 
-    test-mkRule-phase-default-null = {
+    test-mkRule-group-default-null = {
       expr =
         (mkRule {
           condition = { };
           produce = _: _: [ ];
-        }).phase;
+        }).group;
       expected = null;
     };
   };

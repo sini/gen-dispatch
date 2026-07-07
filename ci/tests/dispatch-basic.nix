@@ -8,12 +8,11 @@ let
     dispatch
     fromFunction
     fromFunctionMatch
-    mkRule
     mkActions
     ;
   fx = mkActions { default = [ "act" ]; };
   match = fromFunctionMatch;
-  phaseOrder = [ "default" ];
+  groupOrder = [ "default" ];
 in
 {
   flake.tests.dispatch-basic = {
@@ -26,7 +25,7 @@ in
             context = {
               host = { };
             };
-            inherit match phaseOrder;
+            inherit match groupOrder;
             classify = fx.classify;
           };
         in
@@ -48,7 +47,7 @@ in
             rules = [ (fromFunction ({ host, ... }: [ (fx.act { }) ])) ];
             id = "x";
             context = { };
-            inherit match phaseOrder;
+            inherit match groupOrder;
             classify = fx.classify;
           };
         in
@@ -68,7 +67,7 @@ in
             context = {
               host = { };
             };
-            inherit match phaseOrder;
+            inherit match groupOrder;
             classify = fx.classify;
           };
         in
@@ -85,48 +84,5 @@ in
       ];
     };
 
-    test-fired-tracks-identity = {
-      expr =
-        let
-          r = dispatch {
-            rules = [
-              (mkRule {
-                condition = {
-                  host = false;
-                };
-                produce = _id: _ctx: [ (fx.act { }) ];
-                identity = "my-rule";
-              })
-            ];
-            id = "x";
-            context = {
-              host = { };
-            };
-            inherit match phaseOrder;
-            classify = fx.classify;
-          };
-        in
-        r.fired;
-      expected = {
-        "my-rule" = true;
-      };
-    };
-
-    test-fired-skips-anonymous = {
-      expr =
-        let
-          r = dispatch {
-            rules = [ (fromFunction ({ host, ... }: [ (fx.act { }) ])) ];
-            id = "x";
-            context = {
-              host = { };
-            };
-            inherit match phaseOrder;
-            classify = fx.classify;
-          };
-        in
-        r.fired;
-      expected = { };
-    };
   };
 }

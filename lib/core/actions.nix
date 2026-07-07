@@ -1,23 +1,23 @@
 { prelude }:
 let
   mkActions =
-    phases:
+    groups:
     let
-      tagToPhase = prelude.foldl' (
-        acc: phaseName: prelude.foldl' (acc': tag: acc' // { ${tag} = phaseName; }) acc phases.${phaseName}
-      ) { } (builtins.attrNames phases);
+      tagToGroup = prelude.foldl' (
+        acc: groupName: prelude.foldl' (acc': tag: acc' // { ${tag} = groupName; }) acc groups.${groupName}
+      ) { } (builtins.attrNames groups);
 
       constructors = prelude.foldl' (
-        acc: phaseName:
+        acc: groupName:
         prelude.foldl' (
           acc': tag: acc' // { ${tag} = args: { __action = tag; } // args; }
-        ) acc phases.${phaseName}
-      ) { } (builtins.attrNames phases);
+        ) acc groups.${groupName}
+      ) { } (builtins.attrNames groups);
 
       classify =
         action:
-        if tagToPhase ? ${action.__action} then
-          tagToPhase.${action.__action}
+        if tagToGroup ? ${action.__action} then
+          tagToGroup.${action.__action}
         else
           throw "gen-dispatch: unknown action tag '${action.__action}'";
     in

@@ -12,7 +12,7 @@ let
     ;
   fx = mkActions { default = [ "act" ]; };
   match = fromFunctionMatch;
-  phaseOrder = [ "default" ];
+  groupOrder = [ "default" ];
 in
 {
   flake.tests.conflict = {
@@ -40,7 +40,7 @@ in
             context = {
               host = { };
             };
-            inherit match phaseOrder;
+            inherit match groupOrder;
             classify = fx.classify;
           };
         in
@@ -75,7 +75,7 @@ in
             context = {
               host = { };
             };
-            inherit match phaseOrder;
+            inherit match groupOrder;
             classify = fx.classify;
             exclusive = true;
           };
@@ -109,7 +109,7 @@ in
             context = {
               host = { };
             };
-            inherit match phaseOrder;
+            inherit match groupOrder;
             classify = fx.classify;
           };
         in
@@ -135,7 +135,7 @@ in
             context = {
               host = { };
             };
-            inherit match phaseOrder;
+            inherit match groupOrder;
             classify = fx.classify;
           };
         in
@@ -166,7 +166,7 @@ in
               context = {
                 host = { };
               };
-              inherit match phaseOrder;
+              inherit match groupOrder;
               classify = fx.classify;
             }).actions.default;
       in

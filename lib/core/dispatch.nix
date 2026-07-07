@@ -1,9 +1,15 @@
-# One-shot stratified dispatch: walk phases in the caller-supplied `phaseOrder`,
-# threading the context phase->phase via extract/combine. Within each phase: match,
-# resolve overrides (accumulated FORWARD across phases) + priority/exclusive, fire,
-# classify-validate, group. Single/degenerate phase + identity extract/combine
-# reproduces the prior single-pass behavior exactly. Phase ORDERING is not gen-dispatch's
-# concern — the caller pre-orders (e.g. gen-graph.phaseOrder over an entry* DAG).
+# One-shot stratified dispatch: walk groups in the caller-supplied `groupOrder`,
+# threading the context group->group via extract/combine. Within each group: match,
+# resolve overrides (accumulated FORWARD across groups) + priority/exclusive, fire,
+# classify-validate, group. Single/degenerate group + identity extract/combine
+# reproduces the prior single-pass behavior exactly. Group ORDERING is not gen-dispatch's
+# concern — the caller pre-orders (e.g. gen-graph's topological sort over an entry* DAG).
+#
+# `dispatch` is a pure function of (rules, context): a given context always yields the same
+# actions. Iteration is the caller's — thread the domain state through repeated one-shot
+# dispatch (gen-scope.circular) and read the actions off the fixpoint. Recomputing at the
+# fixpoint makes the action set a function of the CONVERGED state, never the iteration path
+# (a confluence guarantee), so dispatch keeps no cross-pass "already fired" bookkeeping.
 { prelude }:
 let
   inherit (prelude)
@@ -21,33 +27,31 @@ let
       context,
       match,
       classify,
-      phaseOrder,
+      groupOrder,
       exclusive ? false,
-      fired ? { },
       extract ? (_actions: { }),
       combine ? (ctx: _delta: ctx),
     }:
     let
-      multiPhase = builtins.length phaseOrder > 1;
+      multiGroup = builtins.length groupOrder > 1;
       ruleName = r: if r.identity != null then r.identity else "anonymous";
 
-      stepPhase =
-        acc: phaseName:
+      stepGroup =
+        acc: groupName:
         let
           cand = filter (
             r:
             (
-              if multiPhase then
+              if multiGroup then
                 (
-                  if r.phase == null then
-                    throw "gen-dispatch: rule \"${ruleName r}\" has no phase but dispatch is stratified over [${builtins.concatStringsSep ", " phaseOrder}]"
+                  if r.group == null then
+                    throw "gen-dispatch: rule \"${ruleName r}\" has no group but dispatch is stratified over [${builtins.concatStringsSep ", " groupOrder}]"
                   else
-                    r.phase == phaseName
+                    r.group == groupName
                 )
               else
                 true
             )
-            && (r.identity == null || !(acc.fired ? ${r.identity}))
             && (r.identity == null || !(acc.overridden ? ${r.identity}))
           ) rules;
 
@@ -67,7 +71,7 @@ let
           matched = filter (r: r.identity == null || !(overridden' ? ${r.identity})) matched0;
 
           # Total-order sort: priority descending, ties broken deterministically
-          # by declaration order, so the fired set never depends on builtins.sort
+          # by declaration order, so the surviving set never depends on builtins.sort
           # stability or rule-list enumeration order. Surfaced by the ∆-Nets
           # analysis (equal-priority + `exclusive` ties were order-sensitive).
           sorted = map (x: x.r) (
@@ -93,45 +97,38 @@ let
           validated = map (
             res:
             let
-              actionPhases = unique (map classify res.actions);
+              actionGroups = unique (map classify res.actions);
             in
-            if builtins.length actionPhases > 1 then
-              throw "gen-dispatch: rule \"${ruleName res}\" produced actions in multiple phases: ${builtins.concatStringsSep ", " actionPhases}"
-            else if multiPhase && res.actions != [ ] && builtins.head actionPhases != phaseName then
-              throw "gen-dispatch: rule \"${ruleName res}\" declared phase \"${phaseName}\" but produced \"${builtins.head actionPhases}\" actions"
+            if builtins.length actionGroups > 1 then
+              throw "gen-dispatch: rule \"${ruleName res}\" produced actions in multiple groups: ${builtins.concatStringsSep ", " actionGroups}"
+            else if multiGroup && res.actions != [ ] && builtins.head actionGroups != groupName then
+              throw "gen-dispatch: rule \"${ruleName res}\" declared group \"${groupName}\" but produced \"${builtins.head actionGroups}\" actions"
             else
               res
           ) results;
 
-          phaseActions = builtins.concatLists (map (r: r.actions) validated);
-
-          newFired = foldl' (
-            f: r: if r.identity != null then f // { ${r.identity} = true; } else f
-          ) acc.fired validated;
+          groupActions = builtins.concatLists (map (r: r.actions) validated);
         in
         {
           ctx = combine acc.ctx (extract {
-            ${phaseName} = phaseActions;
+            ${groupName} = groupActions;
           });
-          fired = newFired;
+          grouped = acc.grouped // (if groupActions != [ ] then { ${groupName} = groupActions; } else { });
+          present = acc.present ++ (if groupActions != [ ] then [ groupName ] else [ ]);
           overridden = overridden';
-          grouped = acc.grouped // (if phaseActions != [ ] then { ${phaseName} = phaseActions; } else { });
-          present = acc.present ++ (if phaseActions != [ ] then [ phaseName ] else [ ]);
         };
 
-      final = foldl' stepPhase {
+      final = foldl' stepGroup {
         ctx = context;
-        inherit fired;
         overridden = { };
         grouped = { };
         present = [ ];
-      } phaseOrder;
+      } groupOrder;
     in
     {
       actions = final.grouped;
-      orderedPhases = final.present;
+      orderedGroups = final.present;
       context = final.ctx;
-      fired = final.fired;
     };
 in
 {

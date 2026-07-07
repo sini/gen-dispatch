@@ -16,12 +16,11 @@ let
 in
 {
   flake.tests.integration = {
-    # Den-like scenario: 3 stratified phases, enrich->resolution cascade threaded
-    # phase->phase WITHIN one dispatch pass (via extract/combine). The convergence LOOP
-    # that fixpoint used to wrap this now belongs to gen-resolve (gen-scope.circular);
-    # the single pass already yields the terminal actions because the cascade is a
-    # monotone forward stratum fold — see gen-resolve/spike/gen-derive-loop-step for the
-    # byte-identical loop==circular∘dispatch equivalence proof.
+    # Den-like scenario: 3 stratified groups, enrich->resolution cascade threaded
+    # group->group WITHIN one dispatch pass (via extract/combine). The convergence LOOP
+    # is gen-resolve's (gen-scope.circular); the single pass already yields the terminal
+    # actions because the cascade is a monotone forward stratum fold — and recompute at
+    # the fixpoint makes the action set a function of the converged context (confluence).
     test-den-like-scenario = {
       expr =
         let
@@ -48,7 +47,7 @@ in
                 (fx.spawn { kind = "user"; })
               ];
               identity = "host-init";
-              phase = "structural";
+              group = "structural";
             })
             # Resolution: fires after enrichment adds isNixos
             (mkRule {
@@ -58,7 +57,7 @@ in
               };
               produce = _id: _ctx: [ (fx.edge { target = "logging"; }) ];
               identity = "nixos-edges";
-              phase = "resolution";
+              group = "resolution";
             })
             # Collection: fires when host is present
             (mkRule {
@@ -67,7 +66,7 @@ in
               };
               produce = _id: _ctx: [ (fx.gather { scope = "all"; }) ];
               identity = "collect-all";
-              phase = "collection";
+              group = "collection";
             })
           ];
 
@@ -81,7 +80,7 @@ in
             };
             match = fromFunctionMatch;
             classify = fx.classify;
-            phaseOrder = [
+            groupOrder = [
               "structural"
               "resolution"
               "collection"
@@ -95,13 +94,13 @@ in
           };
         in
         {
-          phases = builtins.sort builtins.lessThan (builtins.attrNames r.actions);
+          groups = builtins.sort builtins.lessThan (builtins.attrNames r.actions);
           structuralCount = builtins.length (r.actions.structural or [ ]);
           resolutionCount = builtins.length (r.actions.resolution or [ ]);
           collectionCount = builtins.length (r.actions.collection or [ ]);
         };
       expected = {
-        phases = [
+        groups = [
           "collection"
           "resolution"
           "structural"
@@ -152,7 +151,7 @@ in
             context = mockCtx;
             inherit match;
             classify = fx.classify;
-            phaseOrder = [ "default" ];
+            groupOrder = [ "default" ];
           };
         in
         r.actions.default;
@@ -196,7 +195,7 @@ in
             };
             match = fromFunctionMatch;
             classify = fx.classify;
-            phaseOrder = [ "default" ];
+            groupOrder = [ "default" ];
           };
         in
         map (a: a.v) (r.actions.default or [ ]);
