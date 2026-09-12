@@ -1,5 +1,7 @@
 # gen-dispatch — agent capability sheet
 
+> **Library class: reference-grade.** Deletion requires a domain argument — wrong abstraction, subsumption by another construct, or theory-unsoundness; a usage count is inadmissible as a deletion ground (P7, 2026-08-17).
+
 ## Scope
 
 Relational rule dispatch as one guard→effect **step**: `dispatch` walks a caller-supplied `groupOrder`, and per group matches rule conditions against a threaded context, resolves conflicts (override → priority → exclusive), fires the survivors, and buckets their opaque actions by group.
