@@ -24,7 +24,7 @@ Quoted text is the owner's own `flake.nix` `description` field, verbatim.
 
 ## Exports
 
-Entry: `inputs.gen-dispatch.lib` (flake). Root `default.nix` is a **function** `{ prelude ? <derived from flake.lock via fetchTree>, ... }`, not a bare value — it differs from `import ./lib`, which requires `{ prelude }` explicitly.
+Entry: `inputs.gen-dispatch.lib` (flake). Root `default.nix` is a **function** — `import ./gen-dispatch { }` — whose one named parameter, `prelude`, defaults to the `ci/flake.lock` pin and may be overridden. A second formal on that same root, `wire ? { deps, resolve }: import ./lib deps`, is the seam that hands this exact parameter set to `./lib` as `deps`, and the shim's only outward channel besides: a formal is an INPUT channel and cannot carry a value out, so the lock-parameterised `follows` resolver rides out on the same record. Overriding `wire` is how a cell reads the shim's own formal-to-path map AND its own resolver, with nothing fetched and no fold transcribed. There is no `...`: an argument this root does not declare is a loud error, not a silent drop. The flake output and `import ./gen-dispatch { }` yield the same value.
 
 **Rule construction** — `lib/core/rule.nix`
 
