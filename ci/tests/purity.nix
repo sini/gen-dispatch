@@ -124,6 +124,20 @@ let
   # scan : [ { name; code; } ] -> [ "file: 'tok'" ]. Factored out of `violations` so the detector
   # cell below runs THE SAME call over the same source list with one entry appended, rather than a
   # second copy of the predicate that could drift from this one.
+  #
+  # The live counterpart to `forbidden`: the name this library reaches for where a tether would reach
+  # for nixpkgs lib, or for the gen-algebra the list above also bans. gen-prelude exists precisely so
+  # its consumers can drop `nixpkgs.lib` — its own header states that — and it is this library's ONE
+  # declared input, so `prelude` is the positive dual of the whole forbidden list rather than merely
+  # some token that happens to be present. Exactly one source is outside the list and it is outside
+  # it BY CONSTRUCTION: `lib/core/compose.nix` opens `{ ... }:`, accepting an argument set and
+  # binding nothing out of it. That exclusion is what gives the assertion its teeth — the expected
+  # list is a PROPER SUBSET of the manifest, so a read returning one fixed text for every file lands
+  # outside it either way: without the token the list collapses toward empty, with it the list swells
+  # to every source.
+  liveToken = "prelude";
+  liveReads = map (src: src.name) (lib.filter (src: genPrelude.hasInfix liveToken src.code) sources);
+
   scan =
     srcs:
     lib.concatMap (
@@ -154,6 +168,27 @@ in
       "lib/adapters/select.nix"
       "lib/core/actions.nix"
       "lib/core/compose.nix"
+      "lib/core/declared.nix"
+      "lib/core/dispatch.nix"
+      "lib/core/rule.nix"
+      "lib/default.nix"
+      "flake.nix"
+      "default.nix"
+    ];
+  };
+
+  # And that those labels carry their files' text. The manifest above pins membership and is silent
+  # on content: a read that handed every entry one fixed string would satisfy it exactly, and a live
+  # `genAlgebra` sitting in the real library file would pass through every other cell here at exit 0.
+  # This is the same shape as the manifest — an exact list, not a count — asked of a token that is
+  # genuinely present rather than genuinely absent, so the reads are shown to carry this
+  # repository's source and not a constant. A count-preserving swap, one member's bytes replaced by
+  # another file's, leaves the manifest cell GREEN and reds this one.
+  flake.tests.purity.test-scan-reads-are-live = {
+    expr = liveReads;
+    expected = [
+      "lib/adapters/select.nix"
+      "lib/core/actions.nix"
       "lib/core/declared.nix"
       "lib/core/dispatch.nix"
       "lib/core/rule.nix"
