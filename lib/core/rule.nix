@@ -25,13 +25,13 @@ let
 
   # The one-character REGIME TAG a derived handle carries, and the sibling of
   # `identityOf` rather than a second reader of the tagged sum. `identity` is the
-  # OVERRIDE HANDLE, so the arms must occupy DISJOINT spaces: untagged, a value merely
-  # NAMED string-equal to another's minted digest yields the same handle, and `override`
+  # OVERRIDE HANDLE, so a minted handle must be exact: untagged, a value merely NAMED
+  # string-equal to another's minted digest would yield the same handle, and `override`
   # would then retarget the wrong rule while looking entirely well-formed. Tagging the
   # arm before the payload makes that forgery inexpressible rather than unlikely — the
-  # same discipline the encoder applies to every node of a preimage. The alphabet is
-  # shared with the other readers of this discipline: m = minted, u = unmigrated;
-  # a sealed value is refused outright and emits no handle at all.
+  # same discipline the encoder applies to every node of a preimage. The alphabet has
+  # one letter: m = minted; a sealed OR unmigrated value is refused outright and emits
+  # no handle at all (see the `else` arm below for why `unmigrated` cannot mint one).
   #
   # KNOWN RESIDUAL, and it is outside what a derived handle can close: an identity
   # passed EXPLICITLY to `mkRule` is a caller-supplied string in the same space, so a
@@ -41,9 +41,25 @@ let
     i:
     if i ? minted then
       "m:${i.minted}"
-    else if i ? unmigrated then
-      "u:${i.unmigrated}"
     else
+      # unmintable AND unmigrated both refuse. `.name` is a Nix function's
+      # declaration-site binding name, constant across every value one constructor
+      # produces, so keying on it collapses distinct rules that happen to share a
+      # binding name into one `overridden` entry — a silent wrong-rule override, the
+      # exact failure this whole tagging discipline exists to foreclose. A handle must
+      # be an exact preimage of the value it names or it must not exist; `.name` is not
+      # one.
+      #
+      # ARGUED IMPOSSIBILITY (ADR-0013): the only structural content available here is
+      # `.closure` (`isIntensional`'s fourth predicate), and this library "neither
+      # constructs intensional functions nor sees a closure" (AGENTS.md, citing Palmer
+      # et al.) — it has no registry, export or convention describing that domain, only
+      # the sealed, caller-supplied lambda ADR-0034's migration clause names as the
+      # antecedent for refusal rather than a structural mint. Deriving would require
+      # either gen-dispatch reading `.closure`'s content (content this library's own
+      # capability sheet disclaims ever inspecting) or importing gen-identity's mint —
+      # a new dependency this D-tier local fix does not take. Refusal, not derivation,
+      # follows from those two facts; it is not asserted in their absence.
       null;
 
   # ★ WHY THIS LIBRARY CARRIES NO `comparisonSubject`, unlike the other readers of this
@@ -100,14 +116,15 @@ let
       # instances, so handing it out as a handle gives every value of one constructor
       # ONE handle and overriding any of them silently replaces the wrong rule.
       #
-      # An override handle must be EXACT, so the unmintable regime gets `null` — the
-      # refusal — and `override` then throws "cannot override anonymous rule" by name.
-      # A named refusal replacing a silent wrong-rule override is the design working,
-      # and it is why this arm differs from the two decision sites: they may compare a
-      # reified value, and a handle has nothing to compare against.
+      # An override handle must be EXACT, so the unmintable AND unmigrated regimes both
+      # get `null` — the refusal — and `override` then throws "cannot override
+      # anonymous rule" by name. A named refusal replacing a silent wrong-rule override
+      # is the design working, and it is why this arm differs from the two decision
+      # sites: they may compare a reified value, and a handle has nothing to compare
+      # against.
       #
-      # Each surviving arm carries its REGIME TAG, so the digest and name arms cannot
-      # collide — see `taggedHandle`.
+      # Only the minted arm survives as a handle, so there is nothing left for it to
+      # collide with — see `taggedHandle`.
       identity = if isIntensional fn then taggedHandle (identityOf fn) else null;
     };
 

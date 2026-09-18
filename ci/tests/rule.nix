@@ -118,8 +118,9 @@ in
     };
 
     # The UNMIGRATED arm: this fixture carries no `__mint`, so the program-point name
-    # is still all the reader has — carried under that arm's REGIME TAG, because the
-    # derived handle's arms must occupy disjoint spaces.
+    # is still all `identityOf` has — but a handle must be an exact preimage or it must
+    # not exist (rule.nix's `taggedHandle`), and `.name` is constant across every value
+    # one constructor produces, so this arm refuses rather than keys on it.
     #
     # `.condition` is forced here alongside everything else, via the same
     # attrset-comparison idiom `test-mkrule-defaults` uses (nix-unit's equality check
@@ -149,7 +150,7 @@ in
         condition = {
           host = false;
         };
-        identity = "u:host-guards";
+        identity = null;
         nac = null;
         priority = 0;
         overrides = [ ];
@@ -239,7 +240,7 @@ in
         };
       expected = {
         mintedHandle = "m:its:aaaa";
-        forgedHandle = "u:its:aaaa";
+        forgedHandle = null;
         collide = false;
         overrideMissesTheForger = true;
       };
@@ -265,9 +266,10 @@ in
         in
         {
           minted = (fromFunction minted).identity;
-          # The REFUSAL. A handle must be exact, and a program point is constant
-          # across a constructor's instances — so a value with no mintable identity
-          # gets none rather than a name standing in for one.
+          # THE REFUSAL, both arms. A handle must be exact, and a program point is
+          # constant across a constructor's instances — so a value with no mintable
+          # identity gets none rather than a name (unmintable) or the shipped
+          # program-point name (unmigrated) standing in for one.
           unmintable = (fromFunction unmintable).identity;
           unmigrated = (fromFunction base).identity;
           nonIntensional = (fromFunction ({ host, ... }: [ ])).identity;
@@ -275,7 +277,7 @@ in
       expected = {
         minted = "m:its:aaaa";
         unmintable = null;
-        unmigrated = "u:host-guards";
+        unmigrated = null;
         nonIntensional = null;
       };
     };
