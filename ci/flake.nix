@@ -18,7 +18,12 @@
     let
       prelude = import "${gen-prelude}/lib";
       genDispatch = import ../lib { inherit prelude; };
-      genSelect = import "${gen-select}/lib";
+      # `.lib`, NOT A PATH IMPORT. `${gen-select}/lib` is a FUNCTION taking `{ algebra }`, and
+      # gen-select's root names `.lib` as the channel a flake consumer takes: it is that same
+      # application, with gen-select's own lock supplying the argument this flake declares no
+      # input for. The path form binds the lambda itself, and a lambda only reads as the
+      # attrset the suite indexes until the callee acquires a formal.
+      genSelect = gen-select.lib;
     in
     gen-harness.lib.mkCi {
       inherit inputs;
