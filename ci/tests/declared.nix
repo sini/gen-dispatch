@@ -194,6 +194,23 @@ in
       };
     };
 
+    # The same refusal at DEFINITION, not at use: forcing the derived rule to WHNF (`seq`, no
+    # `deepSeq`, no `.group` read) already refuses for ONE unknown kind, and `tryEval` catches it.
+    test-deriveGroup-single-unknown-kind-refuses-at-whnf = {
+      expr = builtins.tryEval (
+        builtins.seq (deriveGroup fx.groupOfKind (mkRule {
+          condition = { };
+          produce = _: _: [ ];
+          produces = [ "bogus" ];
+          identity = "typo";
+        })) true
+      );
+      expected = {
+        success = false;
+        value = false;
+      };
+    };
+
     # Undeclared rule (produces = null) is a no-op: deriveGroup returns it unchanged.
     test-deriveGroup-undeclared-noop = {
       expr =

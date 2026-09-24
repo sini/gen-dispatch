@@ -31,6 +31,9 @@ let
   # A rule without `produces` (declared = null) is returned UNCHANGED: undeclared means "infer as
   # before", so the vocabulary is additive and back-compatible. An unknown declared kind aborts here
   # too, via `classifyKind`'s own throw (a typo in `produces` fails at definition, not silently).
+  # Every declared kind is classified BEFORE the rule is returned: `unique` compares elements only
+  # when there are two or more, so for a ONE-kind family nothing else would force the classification
+  # and the throw would surface only when `group` is read.
   deriveGroup =
     classifyKind: r:
     let
@@ -40,18 +43,21 @@ let
       r
     else
       let
-        groups = prelude.unique (map classifyKind produces);
+        classified = map classifyKind produces;
+        groups = prelude.unique classified;
       in
-      if builtins.length groups > 1 then
-        throw "gen-dispatch: rule \"${ruleName r}\" declares kinds spanning multiple groups: ${builtins.concatStringsSep ", " groups} (single-group-per-rule)"
-      else
-        let
-          g = if groups == [ ] then null else builtins.head groups;
-        in
-        if r.group != null && g != null && r.group != g then
-          throw "gen-dispatch: rule \"${ruleName r}\" declares group \"${r.group}\" but its produced kinds classify to \"${g}\""
+      builtins.deepSeq classified (
+        if builtins.length groups > 1 then
+          throw "gen-dispatch: rule \"${ruleName r}\" declares kinds spanning multiple groups: ${builtins.concatStringsSep ", " groups} (single-group-per-rule)"
         else
-          r // { group = if g != null then g else r.group; };
+          let
+            g = if groups == [ ] then null else builtins.head groups;
+          in
+          if r.group != null && g != null && r.group != g then
+            throw "gen-dispatch: rule \"${ruleName r}\" declares group \"${r.group}\" but its produced kinds classify to \"${g}\""
+          else
+            r // { group = if g != null then g else r.group; }
+      );
 in
 {
   inherit groupOf producesOf deriveGroup;
