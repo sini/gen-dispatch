@@ -373,10 +373,16 @@ The action set is a function of the **converged state**, not the iteration path 
 Tests use [nix-unit](https://github.com/nix-community/nix-unit); the CI flake (`ci/`) pins nixpkgs for the harness while the library (`../lib`) takes only gen-prelude. The library is `nixpkgs.lib`-free, enforced by the `purity` suite (`ci/tests/purity.nix`).
 
 ```bash
-nix flake check ./ci                       # all suites + the purity check
+nix develop ./ci --command ci              # all suites + the purity check, guarded
+nix flake check ./ci                       # the same, plus the gates; unguarded
 nix build ./ci#formatter.x86_64-linux      # then run ./result/bin/* . to format
 nix repl --impure --file ci/repl.nix       # all exports in scope for interactive use
 ```
+
+`ci` refuses when anything under a declared read root is unknown to git — any extension or name,
+`_`-prefixed included — and the remedy is `git add` or a move. The bare `nix-unit --flake ./ci#tests`
+and `nix flake check ./ci` are unguarded: they read a git-filtered copy of the tree, so an untracked
+cell is silently absent and the run stays green.
 
 There are **86 tests across 11 suites** (`nix-unit --flake ./ci#tests` ⇒ `86/86 successful`, `843e12b`) (`rule`, `actions`, `dispatch-basic`, `dispatch-groups`, `dispatch-nac`, `conflict`, `compose`, `declared`, `entry`, `integration`, `purity`). The gen-select adapter's cross-lib coverage moved to gen-harness's ci (`dispatch-select-adapter`), which pins gen-select directly rather than through this library's own ci. Iteration/convergence coverage lives cross-repo now: the `gen-scope.circular` Kleene ascent is tested in gen-scope, and the loop⊥step composition (one-shot dispatch threaded to a fixpoint) is exercised by consumers such as gen-resolve.
 
