@@ -73,6 +73,18 @@ The rule record `mkRule` returns carries exactly `condition`, `group`, `identity
 | `adapters.select.mkMatch`             | `genSelect -> condition -> id -> ctx -> bool` |
 | `adapters.select.selectorSpecificity` | `selector -> int`                             |
 
+**`__` keys crossing the boundary** (R12 stated contracts; the census that reads these lines takes the
+first line of each):
+
+- `__action` — writer the action constructors `mkActions` builds (`lib/core/actions.nix`), reader `classify` (same file); read by the examples in gen-aspects (`examples/demo`) and gen-scope (`examples/sql-schema`):
+  the tag of an action record `{ __action = tag; } // args`, kept under `__` so it is disjoint from
+  the caller payload merged beside it.
+- `__restricted` — writer `restrict` (`lib/core/compose.nix`), readers `lib/core/rule.nix` and `adapters.select.mkMatch` (`lib/adapters/select.nix`):
+  marks a condition `{ __restricted; original; extra; }` that matches iff both operands match.
+
+Two foreign keys are read here off plain data: gen-select's `__sel` (`selectorSpecificity`) and
+gen-algebra's `__mint` (`lib/core/rule.nix` `identityOf`); their contracts are stated by their owners.
+
 ## Entry points by task
 
 | Task                                                  | Reach for                                                                           |
