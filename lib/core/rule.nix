@@ -124,7 +124,9 @@ let
       # against.
       #
       # Only the minted arm survives as a handle, so there is nothing left for it to
-      # collide with — see `taggedHandle`.
+      # collide with — see `taggedHandle` — PROVIDED the mint is over a TOTAL preimage.
+      # A partial-preimage mint (gen-algebra's declared-revision registry coordinate)
+      # can still collide under this identity and must never reach this arm as a key.
       identity = if isIntensional fn then taggedHandle (identityOf fn) else null;
     };
 
