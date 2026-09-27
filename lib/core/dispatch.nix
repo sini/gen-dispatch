@@ -164,7 +164,11 @@ let
         present = [ ];
       } groupOrder;
     in
-    {
+    # `seq checked` (den-hoag-7gp66 P1 lazy-doors fix): the return was a bare attrset literal, so
+    # its own WHNF forced neither `checked` nor `final` — checkOptions/checkRequired sat unread
+    # until a caller touched `.actions`/`.orderedGroups`/`.context`, admitting a bad record at the
+    # door's own application. Same idiom gen-settings' door fix (0474486) uses.
+    builtins.seq checked {
       actions = final.grouped;
       orderedGroups = final.present;
       context = final.ctx;

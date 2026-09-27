@@ -98,7 +98,11 @@ let
             ] args
           );
     in
-    {
+    # `seq checked` (den-hoag-7gp66 P1 lazy-doors fix): the return was a bare attrset literal, so
+    # its own WHNF forced none of `condition`/`produce`/etc — checkOptions/checkRequired sat unread
+    # until a caller touched a field, admitting a bad record at the door's own application. Same
+    # idiom gen-settings' `resolveOne`/`resolveAll`/`injectAspectSettings` (0474486) uses.
+    builtins.seq checked {
       condition = checked.condition;
       produce = checked.produce;
       nac = checked.nac or null;
