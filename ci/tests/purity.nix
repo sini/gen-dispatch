@@ -189,6 +189,7 @@ in
     expected = [
       "lib/adapters/select.nix"
       "lib/core/actions.nix"
+      "lib/core/compose.nix"
       "lib/core/declared.nix"
       "lib/core/dispatch.nix"
       "lib/core/rule.nix"

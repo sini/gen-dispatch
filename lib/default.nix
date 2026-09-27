@@ -11,7 +11,7 @@ let
   rule = import ./core/rule.nix { inherit prelude; };
   actions = import ./core/actions.nix { inherit prelude; };
   dispatch' = import ./core/dispatch.nix { inherit prelude; };
-  compose = import ./core/compose.nix { };
+  compose = import ./core/compose.nix { inherit prelude; };
   declared = import ./core/declared.nix { inherit prelude; };
   selectAdapter = import ./adapters/select.nix { inherit prelude; };
 in

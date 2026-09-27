@@ -20,19 +20,47 @@ let
     unique
     ;
 
+  # MIXED class (den-hoag-7gp66 P1, R5): required `rules`/`id`/`context`/`match`/`classify`/
+  # `groupOrder` and optional `exclusive`/`extract`/`combine` were a native closed formal, so an
+  # unknown option or a missing required field aborted uncatchably (ADR-0025 item 1). `checkOptions`
+  # composed over `checkRequired` (gate C3) makes both refusals NAMED and CATCHABLE; the defaults
+  # below re-apply exactly what the native formal's own `?` defaults supplied.
   dispatch =
-    {
-      rules,
-      id,
-      context,
-      match,
-      classify,
-      groupOrder,
-      exclusive ? false,
-      extract ? (_actions: { }),
-      combine ? (ctx: _delta: ctx),
-    }:
+    args:
     let
+      checked =
+        prelude.checkOptions "gen-dispatch.dispatch"
+          [
+            "rules"
+            "id"
+            "context"
+            "match"
+            "classify"
+            "groupOrder"
+            "exclusive"
+            "extract"
+            "combine"
+          ]
+          (
+            prelude.checkRequired "gen-dispatch.dispatch" [
+              "rules"
+              "id"
+              "context"
+              "match"
+              "classify"
+              "groupOrder"
+            ] args
+          );
+      rules = checked.rules;
+      id = checked.id;
+      context = checked.context;
+      match = checked.match;
+      classify = checked.classify;
+      groupOrder = checked.groupOrder;
+      exclusive = checked.exclusive or false;
+      extract = checked.extract or (_actions: { });
+      combine = checked.combine or (ctx: _delta: ctx);
+
       multiGroup = builtins.length groupOrder > 1;
       ruleName = r: if r.identity != null then r.identity else "anonymous";
 

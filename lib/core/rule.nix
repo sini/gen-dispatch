@@ -71,28 +71,42 @@ let
   # string key. There is nothing here to exclude the accessor from, and adding the
   # helper would assert a protection this library has no site for.
 
+  # MIXED class (den-hoag-7gp66 P1, R5): required `condition`/`produce` and optional
+  # `nac`/`identity`/`priority`/`overrides`/`group`/`produces` were a native closed formal, so an
+  # unknown option or a missing required field aborted uncatchably (ADR-0025 item 1). `checkOptions`
+  # composed over `checkRequired` (gate C3) makes both refusals NAMED and CATCHABLE; the defaults
+  # below re-apply exactly what the native formal's own `?` defaults supplied.
   mkRule =
+    args:
+    let
+      checked =
+        prelude.checkOptions "gen-dispatch.mkRule"
+          [
+            "condition"
+            "produce"
+            "nac"
+            "identity"
+            "priority"
+            "overrides"
+            "group"
+            "produces"
+          ]
+          (
+            prelude.checkRequired "gen-dispatch.mkRule" [
+              "condition"
+              "produce"
+            ] args
+          );
+    in
     {
-      condition,
-      produce,
-      nac ? null,
-      identity ? null,
-      priority ? 0,
-      overrides ? [ ],
-      group ? null,
-      produces ? null,
-    }:
-    {
-      inherit
-        condition
-        produce
-        nac
-        identity
-        priority
-        overrides
-        group
-        produces
-        ;
+      condition = checked.condition;
+      produce = checked.produce;
+      nac = checked.nac or null;
+      identity = checked.identity or null;
+      priority = checked.priority or 0;
+      overrides = checked.overrides or [ ];
+      group = checked.group or null;
+      produces = checked.produces or null;
     };
 
   fromFunction =
