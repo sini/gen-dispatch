@@ -60,6 +60,23 @@ in
   # fired, so WHICH is pinned here, one golden per violation type per door. `chain` (RECORD class)
   # carries only the missing-field golden: an unknown field is R5's admitted case, and
   # `ci/tests/door-checks.nix` already pins that it does not throw.
+  flake.testsError.o7kjc-seed = {
+    test-seed-wrong-message = {
+      expr = throw "gen-dispatch-seed: the actual message";
+      expectedError = {
+        type = "ThrownError";
+        msg = "gen-dispatch-seed: the EXPECTED message";
+      };
+    };
+    test-seed-lix-nul = {
+      expr = builtins.fromJSON "\"\\u0000\"";
+      expectedError = {
+        type = "Error";
+        msg = "null bytes";
+      };
+    };
+  };
+
   flake.testsError.door-checks = {
     test-mkrule-missing-required-field-message = {
       expr = mkRule { condition = { }; };
