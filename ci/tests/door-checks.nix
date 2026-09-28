@@ -12,6 +12,12 @@
 # OPEN, so an extra field is admitted, never refused. `mkRule`'s `condition`/`produce` and `chain`'s
 # `extract` are POSITIONAL: their arity is structural, and they carry no field check.
 #
+# (v1.2, den-hoag-7gp66 premise 7) ONE NAMED EXCEPTION to "an extra field is admitted, never
+# refused": `dispatch`'s operand record is guarded against its own options step (`optionsStep`), so
+# a field that collides with one of `exclusive`/`extract`/`combine` is refused by name rather than
+# silently admitted and ignored (cells G10/G10-ctl below). Every other extra field keeps R5's width
+# subtyping unchanged.
+#
 # WHICH refusal fired is a claim about the message and `tryEval` yields only `success`; the byte
 # goldens naming each door (R6) live in `ci/tests-error.nix`'s `flake.testsError.door-checks`.
 { genDispatch, ... }:
@@ -132,6 +138,15 @@ in
       expr = answers (dispatch { } (operands // { zzqran7f = 1; }));
       expected = true;
     };
+    # G10 (v1.2, den-hoag-7gp66 premise 7): an option of `dispatch`'s own OPTIONS step
+    # (exclusive/extract/combine), given on the operand record instead, is refused by name rather
+    # than silently admitted and ignored — the witness this landing closes.
+    test-dispatch-misplaced-option-on-the-operand-record-refused-catchably = {
+      expr = refusesCatchably (dispatch { } (operands // { exclusive = true; }));
+      expected = true;
+    };
+    # G10-ctl: the SAME guarded door still admits a field that is neither required nor a sibling
+    # option (the cell above, `zzqran7f`, doubles as this control).
     test-dispatch-valid-call-is-unchanged = {
       expr = dispatch { } operands;
       expected = {

@@ -106,6 +106,26 @@ in
       };
     };
 
+    # G10 (v1.2, den-hoag-7gp66 premise 7): an option of `dispatch`'s own options step, given on the
+    # operand record instead, is refused by name — `checkGuarded`'s own message, not `checkOptions`'s.
+    test-dispatch-misplaced-option-message = {
+      expr = dispatch { } {
+        rules = [ ];
+        id = null;
+        context = { };
+        match =
+          _cond: _id: _ctx:
+          true;
+        classify = _a: "g";
+        groupOrder = [ "g" ];
+        exclusive = true;
+      };
+      expectedError = {
+        type = "ThrownError";
+        msg = exactly "gen-dispatch.dispatch: 'exclusive' is an option of gen-dispatch.dispatch, not a field of this record (in prelude.checkGuarded)";
+      };
+    };
+
     test-override-missing-rule-message = {
       expr = genDispatch.override { original = mkRule { } { } (_id: _ctx: [ ]); };
       expectedError = {

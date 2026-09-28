@@ -47,6 +47,14 @@ let
       "groupOrder"
     ];
     open = true;
+    # (den-hoag-7gp66 P2 v1.2, premise 7) an option of dispatchOptions given here instead — e.g.
+    # `dispatch { } (cfg // { exclusive = true; })` — is refused by name rather than silently
+    # admitted and ignored: `exclusive`/`extract`/`combine` belong on the OPTIONS step, one
+    # position earlier. Names the OUTER, already-built door (`dispatch`, not the unapplied
+    # `dispatchOptions` constructor): `dispatch.__contract` is `dispatchOptions`'s own contract,
+    # independent of `dispatch`'s body, so this is safe even though `dispatch`'s own definition
+    # calls back into `dispatchOperands` (spec p2.3.2 v1.2).
+    optionsStep = dispatch;
   };
   dispatch = dispatchOptions (o: dispatchOperands (dispatchCore o));
 
