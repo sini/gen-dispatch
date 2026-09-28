@@ -15,25 +15,28 @@ in
     test-nac-suppresses-rule = {
       expr =
         let
-          r = dispatch {
+          r = dispatch { } {
             rules = [
-              (mkRule {
-                condition = {
+              (mkRule
+                {
+                  nac = {
+                    monitoring = false;
+                  };
+                }
+                {
                   host = false;
-                };
-                nac = {
-                  monitoring = false;
-                };
-                produce = _id: _ctx: [ (fx.act { }) ];
-              })
+                }
+                (_id: _ctx: [ (fx.act { }) ])
+              )
             ];
             id = "x";
             context = {
               host = { };
               monitoring = { };
             };
-            inherit match groupOrder;
+            inherit match;
             classify = fx.classify;
+            inherit groupOrder;
           };
         in
         r.actions;
@@ -43,21 +46,19 @@ in
     test-nac-null-passes = {
       expr =
         let
-          r = dispatch {
+          r = dispatch { } {
             rules = [
-              (mkRule {
-                condition = {
-                  host = false;
-                };
-                produce = _id: _ctx: [ (fx.act { }) ];
-              })
+              (mkRule { } {
+                host = false;
+              } (_id: _ctx: [ (fx.act { }) ]))
             ];
             id = "x";
             context = {
               host = { };
             };
-            inherit match groupOrder;
+            inherit match;
             classify = fx.classify;
+            inherit groupOrder;
           };
         in
         builtins.length r.actions.default;
@@ -67,24 +68,27 @@ in
     test-nac-not-matching-fires = {
       expr =
         let
-          r = dispatch {
+          r = dispatch { } {
             rules = [
-              (mkRule {
-                condition = {
+              (mkRule
+                {
+                  nac = {
+                    monitoring = false;
+                  };
+                }
+                {
                   host = false;
-                };
-                nac = {
-                  monitoring = false;
-                };
-                produce = _id: _ctx: [ (fx.act { }) ];
-              })
+                }
+                (_id: _ctx: [ (fx.act { }) ])
+              )
             ];
             id = "x";
             context = {
               host = { };
             };
-            inherit match groupOrder;
+            inherit match;
             classify = fx.classify;
+            inherit groupOrder;
           };
         in
         builtins.length r.actions.default;

@@ -35,63 +35,75 @@ in
 
           rules = [
             # Structural: enriches context with isNixos
-            (mkRule {
-              condition = {
+            (mkRule
+              {
+                identity = "host-init";
+                group = "structural";
+              }
+              {
                 host = false;
-              };
-              produce = _id: ctx: [
-                (fx.enrich {
-                  key = "isNixos";
-                  value = true;
-                })
-                (fx.spawn { kind = "user"; })
-              ];
-              identity = "host-init";
-              group = "structural";
-            })
+              }
+              (
+                _id: ctx: [
+                  (fx.enrich {
+                    key = "isNixos";
+                    value = true;
+                  })
+                  (fx.spawn { kind = "user"; })
+                ]
+              )
+            )
             # Resolution: fires after enrichment adds isNixos
-            (mkRule {
-              condition = {
+            (mkRule
+              {
+                identity = "nixos-edges";
+                group = "resolution";
+              }
+              {
                 host = false;
                 isNixos = false;
-              };
-              produce = _id: _ctx: [ (fx.edge { target = "logging"; }) ];
-              identity = "nixos-edges";
-              group = "resolution";
-            })
+              }
+              (_id: _ctx: [ (fx.edge { target = "logging"; }) ])
+            )
             # Collection: fires when host is present
-            (mkRule {
-              condition = {
+            (mkRule
+              {
+                identity = "collect-all";
+                group = "collection";
+              }
+              {
                 host = false;
-              };
-              produce = _id: _ctx: [ (fx.gather { scope = "all"; }) ];
-              identity = "collect-all";
-              group = "collection";
-            })
+              }
+              (_id: _ctx: [ (fx.gather { scope = "all"; }) ])
+            )
           ];
 
-          r = genDispatch.dispatch {
-            inherit rules;
-            id = null;
-            context = {
-              host = {
-                name = "igloo";
+          r =
+            genDispatch.dispatch
+              {
+                extract =
+                  actions:
+                  lib.foldl' (acc: a: if a.__action == "enrich" then acc // { ${a.key} = a.value; } else acc) { } (
+                    actions.structural or [ ]
+                  );
+                combine = ctx: ext: ctx // ext;
+              }
+              {
+                inherit rules;
+                id = null;
+                context = {
+                  host = {
+                    name = "igloo";
+                  };
+                };
+                match = fromFunctionMatch;
+                classify = fx.classify;
+                groupOrder = [
+                  "structural"
+                  "resolution"
+                  "collection"
+                ];
               };
-            };
-            match = fromFunctionMatch;
-            classify = fx.classify;
-            groupOrder = [
-              "structural"
-              "resolution"
-              "collection"
-            ];
-            extract =
-              actions:
-              lib.foldl' (acc: a: if a.__action == "enrich" then acc // { ${a.key} = a.value; } else acc) { } (
-                actions.structural or [ ]
-              );
-            combine = ctx: ext: ctx // ext;
-          };
         in
         {
           groups = builtins.sort builtins.lessThan (builtins.attrNames r.actions);
@@ -136,16 +148,18 @@ in
             ancestors = _: [ ];
             siblings = _: [ ];
           };
-          r = genDispatch.dispatch {
+          r = genDispatch.dispatch { } {
             rules = [
-              (mkRule {
-                condition = sel.attrs {
+              (mkRule
+                {
+                  identity = "prod-rule";
+                }
+                (sel.attrs {
                   type = "host";
                   env = "prod";
-                };
-                produce = _id: _ctx: [ (fx.act { v = "prod-only"; }) ];
-                identity = "prod-rule";
-              })
+                })
+                (_id: _ctx: [ (fx.act { v = "prod-only"; }) ])
+              )
             ];
             id = "host:web";
             context = mockCtx;
@@ -169,22 +183,30 @@ in
         let
           fx = mkActions { default = [ "act" ]; };
 
-          baseRule = mkRule {
-            condition = {
-              host = false;
-            };
-            produce = _id: _ctx: [ (fx.act { v = "base"; }) ];
-            identity = "base";
+          baseRule =
+            mkRule
+              {
+                identity = "base";
+              }
+              {
+                host = false;
+              }
+              (_id: _ctx: [ (fx.act { v = "base"; }) ]);
+          customRule = override {
+            original = baseRule;
+            replacement = (
+              mkRule
+                {
+                  identity = "custom";
+                }
+                {
+                  host = false;
+                }
+                (_id: _ctx: [ (fx.act { v = "custom"; }) ])
+            );
           };
-          customRule = override baseRule (mkRule {
-            condition = {
-              host = false;
-            };
-            produce = _id: _ctx: [ (fx.act { v = "custom"; }) ];
-            identity = "custom";
-          });
 
-          r = genDispatch.dispatch {
+          r = genDispatch.dispatch { } {
             rules = [
               baseRule
               customRule

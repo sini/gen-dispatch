@@ -32,11 +32,9 @@ in
       expr =
         let
           r = mkRule {
-            condition = { };
-            produce = _: _: throw "produce fired — the reader must NOT fire";
             group = "resolution";
             produces = [ "edge" ];
-          };
+          } { } (_: _: throw "produce fired — the reader must NOT fire");
         in
         {
           g = groupOf r;
@@ -52,10 +50,7 @@ in
     test-readers-undeclared-null = {
       expr =
         let
-          r = mkRule {
-            condition = { };
-            produce = _: _: [ ];
-          };
+          r = mkRule { } { } (_: _: [ ]);
         in
         {
           g = groupOf r;
@@ -97,12 +92,12 @@ in
     test-deriveGroup-derives-from-produces = {
       expr =
         let
-          r = deriveGroup fx.groupOfKind (mkRule {
-            condition = { };
-            produce = _: _: throw "produce fired — deriveGroup must classify, not probe";
-            produces = [ "edge" ];
-            identity = "r";
-          });
+          r = deriveGroup fx.groupOfKind (
+            mkRule {
+              produces = [ "edge" ];
+              identity = "r";
+            } { } (_: _: throw "produce fired — deriveGroup must classify, not probe")
+          );
         in
         groupOf r;
       expected = "resolution";
@@ -112,15 +107,15 @@ in
     test-deriveGroup-multi-kind-same-group = {
       expr =
         let
-          r = deriveGroup fx.groupOfKind (mkRule {
-            condition = { };
-            produce = _: _: [ ];
-            produces = [
-              "edge"
-              "drop"
-            ];
-            identity = "r";
-          });
+          r = deriveGroup fx.groupOfKind (
+            mkRule {
+              produces = [
+                "edge"
+                "drop"
+              ];
+              identity = "r";
+            } { } (_: _: [ ])
+          );
         in
         groupOf r;
       expected = "resolution";
@@ -130,13 +125,13 @@ in
     test-deriveGroup-honors-agreeing-explicit = {
       expr =
         let
-          r = deriveGroup fx.groupOfKind (mkRule {
-            condition = { };
-            produce = _: _: [ ];
-            group = "resolution";
-            produces = [ "edge" ];
-            identity = "r";
-          });
+          r = deriveGroup fx.groupOfKind (
+            mkRule {
+              group = "resolution";
+              produces = [ "edge" ];
+              identity = "r";
+            } { } (_: _: [ ])
+          );
         in
         groupOf r;
       expected = "resolution";
@@ -145,13 +140,13 @@ in
     # CONFLICT: an explicit `group` that disagrees with the declared kinds' stratum aborts NAMED.
     test-deriveGroup-conflict-throws = {
       expr = builtins.tryEval (
-        builtins.deepSeq (deriveGroup fx.groupOfKind (mkRule {
-          condition = { };
-          produce = _: _: [ ];
-          group = "structural";
-          produces = [ "edge" ];
-          identity = "misdeclared";
-        })) true
+        builtins.deepSeq (deriveGroup fx.groupOfKind (
+          mkRule {
+            group = "structural";
+            produces = [ "edge" ];
+            identity = "misdeclared";
+          } { } (_: _: [ ])
+        )) true
       );
       expected = {
         success = false;
@@ -162,15 +157,15 @@ in
     # Declared kinds SPANNING more than one group violate single-group-per-rule at DEFINITION time.
     test-deriveGroup-spanning-throws = {
       expr = builtins.tryEval (
-        builtins.deepSeq (deriveGroup fx.groupOfKind (mkRule {
-          condition = { };
-          produce = _: _: [ ];
-          produces = [
-            "spawn"
-            "edge"
-          ];
-          identity = "spanning";
-        })) true
+        builtins.deepSeq (deriveGroup fx.groupOfKind (
+          mkRule {
+            produces = [
+              "spawn"
+              "edge"
+            ];
+            identity = "spanning";
+          } { } (_: _: [ ])
+        )) true
       );
       expected = {
         success = false;
@@ -181,12 +176,12 @@ in
     # An unknown declared kind aborts at definition time (via groupOfKind's throw).
     test-deriveGroup-unknown-kind-throws = {
       expr = builtins.tryEval (
-        builtins.deepSeq (deriveGroup fx.groupOfKind (mkRule {
-          condition = { };
-          produce = _: _: [ ];
-          produces = [ "bogus" ];
-          identity = "typo";
-        })) true
+        builtins.deepSeq (deriveGroup fx.groupOfKind (
+          mkRule {
+            produces = [ "bogus" ];
+            identity = "typo";
+          } { } (_: _: [ ])
+        )) true
       );
       expected = {
         success = false;
@@ -198,12 +193,12 @@ in
     # `deepSeq`, no `.group` read) already refuses for ONE unknown kind, and `tryEval` catches it.
     test-deriveGroup-single-unknown-kind-refuses-at-whnf = {
       expr = builtins.tryEval (
-        builtins.seq (deriveGroup fx.groupOfKind (mkRule {
-          condition = { };
-          produce = _: _: [ ];
-          produces = [ "bogus" ];
-          identity = "typo";
-        })) true
+        builtins.seq (deriveGroup fx.groupOfKind (
+          mkRule {
+            produces = [ "bogus" ];
+            identity = "typo";
+          } { } (_: _: [ ])
+        )) true
       );
       expected = {
         success = false;
@@ -216,10 +211,8 @@ in
       expr =
         let
           r = mkRule {
-            condition = { };
-            produce = _: _: [ ];
             group = "structural";
-          };
+          } { } (_: _: [ ]);
         in
         groupOf (deriveGroup fx.groupOfKind r) == "structural"
         && producesOf (deriveGroup fx.groupOfKind r) == null;
@@ -233,15 +226,18 @@ in
     test-dispatch-declared-lands-in-stratum = {
       expr =
         let
-          r = deriveGroup fx.groupOfKind (mkRule {
-            condition = {
-              host = false;
-            };
-            produce = _: _: [ (fx.edge { }) ];
-            produces = [ "edge" ];
-            identity = "r";
-          });
-          res = dispatch {
+          r = deriveGroup fx.groupOfKind (
+            mkRule
+              {
+                produces = [ "edge" ];
+                identity = "r";
+              }
+              {
+                host = false;
+              }
+              (_: _: [ (fx.edge { }) ])
+          );
+          res = dispatch { } {
             rules = [ r ];
             id = "x";
             context = {
@@ -272,16 +268,18 @@ in
     test-dispatch-declared-skips-classify = {
       expr =
         let
-          r = mkRule {
-            condition = {
-              host = false;
-            };
-            produce = _: _: [ (fx.edge { }) ];
-            group = "resolution";
-            produces = [ "edge" ];
-            identity = "declared";
-          };
-          res = dispatch {
+          r =
+            mkRule
+              {
+                group = "resolution";
+                produces = [ "edge" ];
+                identity = "declared";
+              }
+              {
+                host = false;
+              }
+              (_: _: [ (fx.edge { }) ]);
+          res = dispatch { } {
             rules = [ r ];
             id = "x";
             context = {
@@ -304,15 +302,17 @@ in
     # the dispatch aborts. Proves the skip above is real, and the classify path is unchanged.
     test-dispatch-undeclared-still-validates = {
       expr = builtins.tryEval (
-        builtins.deepSeq (dispatch {
+        builtins.deepSeq (dispatch { } {
           rules = [
-            (mkRule {
-              condition = {
+            (mkRule
+              {
+                group = "resolution";
+              }
+              {
                 host = false;
-              };
-              produce = _: _: [ (fx.edge { }) ];
-              group = "resolution";
-            })
+              }
+              (_: _: [ (fx.edge { }) ])
+            )
           ];
           id = "x";
           context = {

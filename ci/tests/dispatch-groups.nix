@@ -24,29 +24,34 @@ in
     # caller-supplied groupOrder (group ordering is gen-graph's concern).
     test-ordered-groups-present-subsequence = {
       expr =
-        (dispatch {
+        (dispatch { } {
           rules = [
-            (mkRule {
-              condition = {
+            (mkRule
+              {
+                group = "structural";
+              }
+              {
                 host = false;
-              };
-              group = "structural";
-              produce = _: _: [ (fx.spawn { }) ];
-            })
-            (mkRule {
-              condition = {
+              }
+              (_: _: [ (fx.spawn { }) ])
+            )
+            (mkRule
+              {
+                group = "resolution";
+              }
+              {
                 host = false;
-              };
-              group = "resolution";
-              produce = _: _: [ (fx.edge { }) ];
-            })
+              }
+              (_: _: [ (fx.edge { }) ])
+            )
           ];
           id = "x";
           context = {
             host = { };
           };
-          inherit match groupOrder;
+          inherit match;
           classify = fx.classify;
+          inherit groupOrder;
         }).orderedGroups;
       expected = [
         "structural"
@@ -57,29 +62,34 @@ in
     test-actions-grouped-by-group = {
       expr =
         let
-          r = dispatch {
+          r = dispatch { } {
             rules = [
-              (mkRule {
-                condition = {
+              (mkRule
+                {
+                  group = "structural";
+                }
+                {
                   host = false;
-                };
-                group = "structural";
-                produce = _: _: [ (fx.spawn { }) ];
-              })
-              (mkRule {
-                condition = {
+                }
+                (_: _: [ (fx.spawn { }) ])
+              )
+              (mkRule
+                {
+                  group = "resolution";
+                }
+                {
                   host = false;
-                };
-                group = "resolution";
-                produce = _: _: [ (fx.edge { }) ];
-              })
+                }
+                (_: _: [ (fx.edge { }) ])
+              )
             ];
             id = "x";
             context = {
               host = { };
             };
-            inherit match groupOrder;
+            inherit match;
             classify = fx.classify;
+            inherit groupOrder;
           };
         in
         builtins.length r.actions.structural + builtins.length r.actions.resolution;
@@ -89,34 +99,43 @@ in
     test-cross-group-threading = {
       expr =
         let
-          r = dispatch {
-            rules = [
-              (mkRule {
-                condition = {
-                  host = false;
+          r =
+            dispatch
+              {
+                extract = actions: if (actions.structural or [ ]) != [ ] then { flag = true; } else { };
+                combine = ctx: ext: ctx // ext;
+              }
+              {
+                rules = [
+                  (mkRule
+                    {
+                      group = "structural";
+                      identity = "s";
+                    }
+                    {
+                      host = false;
+                    }
+                    (_: _: [ (fx.spawn { }) ])
+                  )
+                  (mkRule
+                    {
+                      group = "resolution";
+                      identity = "r";
+                    }
+                    {
+                      flag = false;
+                    }
+                    (_: _: [ (fx.edge { }) ])
+                  )
+                ];
+                id = "x";
+                context = {
+                  host = { };
                 };
-                group = "structural";
-                produce = _: _: [ (fx.spawn { }) ];
-                identity = "s";
-              })
-              (mkRule {
-                condition = {
-                  flag = false;
-                };
-                group = "resolution";
-                produce = _: _: [ (fx.edge { }) ];
-                identity = "r";
-              })
-            ];
-            id = "x";
-            context = {
-              host = { };
-            };
-            inherit match groupOrder;
-            classify = fx.classify;
-            extract = actions: if (actions.structural or [ ]) != [ ] then { flag = true; } else { };
-            combine = ctx: ext: ctx // ext;
-          };
+                inherit match;
+                classify = fx.classify;
+                inherit groupOrder;
+              };
         in
         builtins.length (r.actions.resolution or [ ]);
       expected = 1;
@@ -125,32 +144,37 @@ in
     test-forward-override = {
       expr =
         let
-          r = dispatch {
+          r = dispatch { } {
             rules = [
-              (mkRule {
-                condition = {
+              (mkRule
+                {
+                  group = "structural";
+                  identity = "s";
+                  overrides = [ "r" ];
+                }
+                {
                   host = false;
-                };
-                group = "structural";
-                produce = _: _: [ (fx.spawn { }) ];
-                identity = "s";
-                overrides = [ "r" ];
-              })
-              (mkRule {
-                condition = {
+                }
+                (_: _: [ (fx.spawn { }) ])
+              )
+              (mkRule
+                {
+                  group = "resolution";
+                  identity = "r";
+                }
+                {
                   host = false;
-                };
-                group = "resolution";
-                produce = _: _: [ (fx.edge { }) ];
-                identity = "r";
-              })
+                }
+                (_: _: [ (fx.edge { }) ])
+              )
             ];
             id = "x";
             context = {
               host = { };
             };
-            inherit match groupOrder;
+            inherit match;
             classify = fx.classify;
+            inherit groupOrder;
           };
         in
         r.actions.resolution or [ ];
@@ -159,22 +183,25 @@ in
 
     test-group-consistency-error = {
       expr = builtins.tryEval (
-        builtins.deepSeq (dispatch {
+        builtins.deepSeq (dispatch { } {
           rules = [
-            (mkRule {
-              condition = {
+            (mkRule
+              {
+                group = "structural";
+              }
+              {
                 host = false;
-              };
-              group = "structural";
-              produce = _: _: [ (fx.edge { }) ];
-            })
+              }
+              (_: _: [ (fx.edge { }) ])
+            )
           ];
           id = "x";
           context = {
             host = { };
           };
-          inherit match groupOrder;
+          inherit match;
           classify = fx.classify;
+          inherit groupOrder;
         }) true
       );
       expected = {
@@ -185,21 +212,19 @@ in
 
     test-missing-group-error = {
       expr = builtins.tryEval (
-        builtins.deepSeq (dispatch {
+        builtins.deepSeq (dispatch { } {
           rules = [
-            (mkRule {
-              condition = {
-                host = false;
-              };
-              produce = _: _: [ (fx.spawn { }) ];
-            })
+            (mkRule { } {
+              host = false;
+            } (_: _: [ (fx.spawn { }) ]))
           ];
           id = "x";
           context = {
             host = { };
           };
-          inherit match groupOrder;
+          inherit match;
           classify = fx.classify;
+          inherit groupOrder;
         }) true
       );
       expected = {
@@ -210,25 +235,30 @@ in
 
     test-multi-group-rule-error = {
       expr = builtins.tryEval (
-        builtins.deepSeq (dispatch {
+        builtins.deepSeq (dispatch { } {
           rules = [
-            (mkRule {
-              condition = {
+            (mkRule
+              {
+                group = "structural";
+              }
+              {
                 host = false;
-              };
-              group = "structural";
-              produce = _: _: [
-                (fx.spawn { })
-                (fx.edge { })
-              ];
-            })
+              }
+              (
+                _: _: [
+                  (fx.spawn { })
+                  (fx.edge { })
+                ]
+              )
+            )
           ];
           id = "x";
           context = {
             host = { };
           };
-          inherit match groupOrder;
+          inherit match;
           classify = fx.classify;
+          inherit groupOrder;
         }) true
       );
       expected = {
@@ -241,14 +271,11 @@ in
       expr =
         let
           fx1 = mkActions { default = [ "act" ]; };
-          r = dispatch {
+          r = dispatch { } {
             rules = [
-              (mkRule {
-                condition = {
-                  host = false;
-                };
-                produce = _: _: [ (fx1.act { }) ];
-              })
+              (mkRule { } {
+                host = false;
+              } (_: _: [ (fx1.act { }) ]))
             ];
             id = "x";
             context = {

@@ -16,14 +16,16 @@ in
     test-restrict-shape = {
       expr =
         let
-          base = mkRule {
-            condition = {
-              host = false;
-            };
-            produce = _id: _ctx: [ ];
-            identity = "base";
-            nac = "original-nac";
-          };
+          base =
+            mkRule
+              {
+                identity = "base";
+                nac = "original-nac";
+              }
+              {
+                host = false;
+              }
+              (_id: _ctx: [ ]);
           restricted = restrict { env = false; } base;
         in
         {
@@ -49,12 +51,9 @@ in
     test-restrict-anonymous = {
       expr =
         let
-          base = mkRule {
-            condition = {
-              host = false;
-            };
-            produce = _id: _ctx: [ ];
-          };
+          base = mkRule { } {
+            host = false;
+          } (_id: _ctx: [ ]);
           restricted = restrict { env = false; } base;
         in
         restricted.identity;
@@ -65,34 +64,22 @@ in
       expr =
         let
           original = mkRule {
-            condition = { };
-            produce = _id: _ctx: [ ];
             identity = "original";
-          };
+          } { } (_id: _ctx: [ ]);
           replacement = mkRule {
-            condition = { };
-            produce = _id: _ctx: [ ];
             identity = "replacement";
-          };
-          result = override original replacement;
+          } { } (_id: _ctx: [ ]);
+          result = override { inherit original replacement; };
         in
         result.overrides;
       expected = [ "original" ];
     };
 
     test-override-anonymous-throws = {
-      expr = builtins.tryEval (
-        override
-          (mkRule {
-            condition = { };
-            produce = _id: _ctx: [ ];
-          })
-          (mkRule {
-            condition = { };
-            produce = _id: _ctx: [ ];
-            identity = "rep";
-          })
-      );
+      expr = builtins.tryEval (override {
+        original = mkRule { } { } (_id: _ctx: [ ]);
+        replacement = mkRule { identity = "rep"; } { } (_id: _ctx: [ ]);
+      });
       expected = {
         success = false;
         value = false;
@@ -103,16 +90,12 @@ in
       expr =
         let
           a = mkRule {
-            condition = { };
-            produce = _id: _ctx: [ ];
             identity = "a";
-          };
+          } { } (_id: _ctx: [ ]);
           b = mkRule {
-            condition = { };
-            produce = _id: _ctx: [ ];
             identity = "b";
-          };
-          chained = chain { extract = _: { }; } a b;
+          } { } (_id: _ctx: [ ]);
+          chained = chain (_: { }) a b;
         in
         chained.identity;
       expected = "chain:a:b";
@@ -125,15 +108,9 @@ in
     test-chain-anonymous = {
       expr =
         let
-          a = mkRule {
-            condition = { };
-            produce = _id: _ctx: [ ];
-          };
-          b = mkRule {
-            condition = { };
-            produce = _id: _ctx: [ ];
-          };
-          chained = chain { extract = _: { }; } a b;
+          a = mkRule { } { } (_id: _ctx: [ ]);
+          b = mkRule { } { } (_id: _ctx: [ ]);
+          chained = chain (_: { }) a b;
         in
         chained.identity;
       expected = null;
@@ -145,16 +122,11 @@ in
       expr =
         let
           identified = mkRule {
-            condition = { };
-            produce = _id: _ctx: [ ];
             identity = "a";
-          };
-          anonymous = mkRule {
-            condition = { };
-            produce = _id: _ctx: [ ];
-          };
+          } { } (_id: _ctx: [ ]);
+          anonymous = mkRule { } { } (_id: _ctx: [ ]);
         in
-        (chain { extract = _: { }; } identified anonymous).identity;
+        (chain (_: { }) identified anonymous).identity;
       expected = null;
     };
   };

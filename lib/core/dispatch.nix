@@ -20,46 +20,50 @@ let
     unique
     ;
 
-  # MIXED class (den-hoag-7gp66 P1, R5): required `rules`/`id`/`context`/`match`/`classify`/
-  # `groupOrder` and optional `exclusive`/`extract`/`combine` were a native closed formal, so an
-  # unknown option or a missing required field aborted uncatchably (ADR-0025 item 1). `checkOptions`
-  # composed over `checkRequired` (gate C3) makes both refusals NAMED and CATCHABLE; the defaults
-  # below re-apply exactly what the native formal's own `?` defaults supplied.
-  dispatch =
-    args:
+  # `dispatch { exclusive ?; extract ?; combine ?; } { rules; id; context; match; classify; groupOrder; }`
+  # (P2, R7). The options are one closed set, first, checked when `dispatch opts` is formed. The six
+  # operands stay ONE required-argument record (R7 (a)): they are three pairs of one role each — the
+  # interpreters `match`/`classify` (both functions), the program `rules`/`groupOrder` (both lists) and
+  # the subject `id`/`context` — and nothing orders the two members of a pair, so a positional order
+  # would be an arbitrary one to remember. The record is a door too (open, as a record operand is), so
+  # a missing operand is refused catchably, by name, when the record is applied. Both specs are bound
+  # once, here; a call supplies only the bodies.
+  dispatchOptions = prelude.door {
+    name = "gen-dispatch.dispatch";
+    optional = [
+      "exclusive"
+      "extract"
+      "combine"
+    ];
+  };
+  dispatchOperands = prelude.door {
+    name = "gen-dispatch.dispatch";
+    required = [
+      "rules"
+      "id"
+      "context"
+      "match"
+      "classify"
+      "groupOrder"
+    ];
+    open = true;
+  };
+  dispatch = dispatchOptions (o: dispatchOperands (dispatchCore o));
+
+  dispatchCore =
+    o: args:
     let
-      checked =
-        prelude.checkOptions "gen-dispatch.dispatch"
-          [
-            "rules"
-            "id"
-            "context"
-            "match"
-            "classify"
-            "groupOrder"
-            "exclusive"
-            "extract"
-            "combine"
-          ]
-          (
-            prelude.checkRequired "gen-dispatch.dispatch" [
-              "rules"
-              "id"
-              "context"
-              "match"
-              "classify"
-              "groupOrder"
-            ] args
-          );
-      rules = checked.rules;
-      id = checked.id;
-      context = checked.context;
-      match = checked.match;
-      classify = checked.classify;
-      groupOrder = checked.groupOrder;
-      exclusive = checked.exclusive or false;
-      extract = checked.extract or (_actions: { });
-      combine = checked.combine or (ctx: _delta: ctx);
+      inherit (args)
+        rules
+        id
+        context
+        match
+        classify
+        groupOrder
+        ;
+      exclusive = o.exclusive or false;
+      extract = o.extract or (_actions: { });
+      combine = o.combine or (ctx: _delta: ctx);
 
       multiGroup = builtins.length groupOrder > 1;
       ruleName = r: if r.identity != null then r.identity else "anonymous";
@@ -164,11 +168,7 @@ let
         present = [ ];
       } groupOrder;
     in
-    # `seq checked` (den-hoag-7gp66 P1 lazy-doors fix): the return was a bare attrset literal, so
-    # its own WHNF forced neither `checked` nor `final` — checkOptions/checkRequired sat unread
-    # until a caller touched `.actions`/`.orderedGroups`/`.context`, admitting a bad record at the
-    # door's own application. Same idiom gen-settings' door fix (0474486) uses.
-    builtins.seq checked {
+    {
       actions = final.grouped;
       orderedGroups = final.present;
       context = final.ctx;

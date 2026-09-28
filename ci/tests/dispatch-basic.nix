@@ -19,14 +19,15 @@ in
     test-single-rule-fires = {
       expr =
         let
-          r = dispatch {
+          r = dispatch { } {
             rules = [ (fromFunction ({ host, ... }: [ (fx.act { v = 1; }) ])) ];
             id = "host:igloo";
             context = {
               host = { };
             };
-            inherit match groupOrder;
+            inherit match;
             classify = fx.classify;
+            inherit groupOrder;
           };
         in
         r.actions;
@@ -43,12 +44,13 @@ in
     test-no-match-empty = {
       expr =
         let
-          r = dispatch {
+          r = dispatch { } {
             rules = [ (fromFunction ({ host, ... }: [ (fx.act { }) ])) ];
             id = "x";
             context = { };
-            inherit match groupOrder;
+            inherit match;
             classify = fx.classify;
+            inherit groupOrder;
           };
         in
         r.actions;
@@ -58,7 +60,7 @@ in
     test-multiple-rules = {
       expr =
         let
-          r = dispatch {
+          r = dispatch { } {
             rules = [
               (fromFunction ({ host, ... }: [ (fx.act { v = 1; }) ]))
               (fromFunction ({ host, ... }: [ (fx.act { v = 2; }) ]))
@@ -67,8 +69,9 @@ in
             context = {
               host = { };
             };
-            inherit match groupOrder;
+            inherit match;
             classify = fx.classify;
+            inherit groupOrder;
           };
         in
         r.actions.default;

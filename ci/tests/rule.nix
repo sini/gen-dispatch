@@ -39,10 +39,7 @@ in
     test-mkrule-defaults = {
       expr =
         let
-          r = mkRule {
-            condition = "test";
-            produce = _id: _ctx: [ ];
-          };
+          r = mkRule { } "test" (_id: _ctx: [ ]);
         in
         {
           inherit (r)
@@ -68,13 +65,11 @@ in
       expr =
         let
           r = mkRule {
-            condition = "test";
-            produce = _id: _ctx: [ ];
             nac = "nac-cond";
             priority = 10;
             overrides = [ "other" ];
             identity = "my-rule";
-          };
+          } "test" (_id: _ctx: [ ]);
         in
         {
           inherit (r)
@@ -168,7 +163,7 @@ in
       expr =
         let
           fn = intensionalLike "host-guards" { } ({ host, ... }: [ "spawned" ]);
-          r = dispatch {
+          r = dispatch { } {
             rules = [ (fromFunction fn) ];
             id = null;
             context = {
@@ -190,7 +185,7 @@ in
     test-control-from-function-plain-dispatches = {
       expr =
         let
-          r = dispatch {
+          r = dispatch { } {
             rules = [ (fromFunction ({ host, ... }: [ "spawned" ])) ];
             id = null;
             context = {
@@ -230,11 +225,12 @@ in
           overrideMissesTheForger =
             let
               replacement = mkRule {
-                condition = { };
-                produce = _id: _ctx: [ ];
                 identity = "replacement";
+              } { } (_id: _ctx: [ ]);
+              overridden = genDispatch.override {
+                original = fromFunction minted;
+                inherit replacement;
               };
-              overridden = genDispatch.override (fromFunction minted) replacement;
             in
             !(builtins.elem (fromFunction forger).identity overridden.overrides);
         };
@@ -342,32 +338,24 @@ in
     test-mkRule-group = {
       expr =
         (mkRule {
-          condition = { };
-          produce = _: _: [ ];
           group = "structural";
-        }).group;
+        } { } (_: _: [ ])).group;
       expected = "structural";
     };
 
     test-mkRule-group-default-null = {
-      expr =
-        (mkRule {
-          condition = { };
-          produce = _: _: [ ];
-        }).group;
+      expr = (mkRule { } { } (_: _: [ ])).group;
       expected = null;
     };
 
     test-mkRule-produces = {
       expr =
         (mkRule {
-          condition = { };
-          produce = _: _: [ ];
           produces = [
             "edge"
             "drop"
           ];
-        }).produces;
+        } { } (_: _: [ ])).produces;
       expected = [
         "edge"
         "drop"
@@ -375,11 +363,7 @@ in
     };
 
     test-mkRule-produces-default-null = {
-      expr =
-        (mkRule {
-          condition = { };
-          produce = _: _: [ ];
-        }).produces;
+      expr = (mkRule { } { } (_: _: [ ])).produces;
       expected = null;
     };
   };

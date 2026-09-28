@@ -110,17 +110,27 @@ The full exported surface is `{ dispatch, mkRule, fromFunction, fromFunctionMatc
 
 ```nix
 dispatch {
+  exclusive ? false;  # only highest-priority group fires
+  extract ? (_: {});       # { group = [action]; } -> ctx delta (per-group threading; default no-op)
+  combine ? (ctx: _: ctx); # ctx -> delta -> ctx (default identity = no threading)
+} {
   rules;              # [ rule ]
   id;                 # current position
   context;            # caller-defined context
   match;              # condition -> id -> ctx -> bool
   classify;           # action -> group name
   groupOrder;         # [ groupName ] — pre-ordered (e.g. a gen-graph topo sort); dispatch does NOT sort
-  exclusive ? false;  # only highest-priority group fires
-  extract ? (_: {});       # { group = [action]; } -> ctx delta (per-group threading; default no-op)
-  combine ? (ctx: _: ctx); # ctx -> delta -> ctx (default identity = no threading)
 }
 -> { actions; orderedGroups; context; }
+```
+
+The options come first, in one closed set: an unknown option is refused by name when `dispatch opts`
+is formed. The six operands stay one record, open as a record operand is, because they come in three
+pairs (the interpreters `match`/`classify`, the program `rules`/`groupOrder`, the subject
+`id`/`context`) with no order inside a pair; a missing operand is refused by name when the record is
+applied.
+
+```nix
 ```
 
 One-shot dispatch, a pure function of `(rules, context)`. Fires all matching rules in the supplied `groupOrder` — lower groups complete before higher groups begin, with context threaded between groups. Ordering is the caller's concern (`gen-graph` builds it from `before`/`after` constraints); dispatch just walks the list. `orderedGroups` in the result is the present-only subsequence of `groupOrder`. Validates the single-group-per-rule constraint.
@@ -133,13 +143,13 @@ One-shot dispatch, a pure function of `(rules, context)`. Fires all matching rul
 
 ```nix
 # one-shot dispatch as the step: next state = the context dispatch threads out
-step = _self: _id: ctx: (dispatch (cfg // { context = ctx; })).context;
+step = _self: _id: ctx: (dispatch { } (cfg // { context = ctx; })).context;
 
 # gen-scope.circular iterates the step to a fixpoint over the domain state
 converged = (scope.circular { init = ctx0; eq = stateEq; } step) { } null;
 
 # one post-convergence dispatch reads the actions off the fixpoint
-result = dispatch (cfg // { context = converged; });   # result.actions, result.orderedGroups
+result = dispatch { } (cfg // { context = converged; });   # result.actions, result.orderedGroups
 ```
 
 Recomputing at the fixpoint makes the action set a function of the **converged state**, never the iteration path — a confluence guarantee. That is why dispatch keeps no cross-pass `fired` set: the "double-emit across passes" problem exists only under an accumulate-across-passes model, and cannot arise when each pass recomputes from scratch and the actions are taken from the fixpoint. (The retired `dispatchStep` / `dispatchInit` pair was the byte-identical migration seam off the old in-tree `fixpoint`; with the recompute pattern blessed, it is gone.)
@@ -148,8 +158,6 @@ Recomputing at the fixpoint makes the action set a function of the **converged s
 
 ```nix
 mkRule {
-  condition;            # opaque -- interpreted by match function
-  produce;              # id -> ctx -> [ action ]
   nac ? null;           # negative application condition
   identity ? null;      # string for dedup, or null (anonymous)
   priority ? 0;         # higher fires first
@@ -157,6 +165,8 @@ mkRule {
   group ? null;         # group name (stratum) for stratified dispatch, or null (single-group)
   produces ? null;      # declared produced-kind family [ tag ], or null (undeclared) -- see Declared Stratum
 }
+condition               # opaque -- interpreted by match function
+produce                 # id -> ctx -> [ action ]
 -> rule
 ```
 
@@ -237,11 +247,9 @@ deriveGroup : (tag -> group) -> rule -> rule  # classify `produces`, stamp `grou
 ```nix
 fx   = dispatch.mkActions { structural = [ "spawn" ]; resolution = [ "edge" ]; };
 rule = dispatch.deriveGroup fx.groupOfKind (dispatch.mkRule {
-  condition = { host = false; };
-  produce   = _id: _ctx: [ (fx.edge { }) ];
   produces  = [ "edge" ];          # declared family
   identity  = "nixos-edges";
-});
+} { host = false; } (_id: _ctx: [ (fx.edge { }) ]));
 dispatch.groupOf rule               # => "resolution"  (derived, never fired)
 ```
 
@@ -264,10 +272,10 @@ Three strategies, applied in order:
 dispatch.restrict extraCondition rule
 
 # One rule replaces another (sugar over the overrides field)
-dispatch.override original replacement
+dispatch.override { original; replacement; }
 
 # Sequential: A's actions feed as context to B
-dispatch.chain { extract; } ruleA ruleB
+dispatch.chain extract ruleA ruleB
 ```
 
 `chain`'s composite identity is **null when either arm is null**. A composite is anonymous the moment any of its arms is, because the arm with no identity is the one whose distinct rules the handle can no longer tell apart. The retired `"anon"` default gave two behaviourally distinct composites one handle, which `override` then accepted precisely because it was non-null. The **mixed** pair is what forces that scope rather than the anonymous one: a rule propagating null only when *both* arms are anonymous still collides `chain(identified X, anonymous A)` with `chain(identified X, anonymous B)`.
@@ -319,11 +327,9 @@ let
     ]))
 
     # This rule fires only after enrichment adds "isNixos" to context
-    (dispatch.mkRule {
-      condition = { host = false; isNixos = false; };
-      produce = _id: _ctx: [ (fx.edge { target = "logging"; }) ];
-      identity = "nixos-edges";
-    })
+    (dispatch.mkRule { identity = "nixos-edges"; }
+      { host = false; isNixos = false; }
+      (_id: _ctx: [ (fx.edge { target = "logging"; }) ]))
   ];
 
   cfg = {
@@ -344,7 +350,7 @@ let
   };
 
   # One pass: the enrich→resolution cascade completes because context threads forward.
-  result = dispatch.dispatch (cfg // { context = { host = { name = "igloo"; }; }; });
+  result = dispatch.dispatch { inherit (cfg) extract combine; } (cfg // { context = { host = { name = "igloo"; }; }; });
 in
   result.actions   # { structural = [ enrich, spawn ]; resolution = [ edge ]; }
 ```
@@ -355,7 +361,7 @@ in
 let
   scope = gen-scope.lib;
   # step: next state = the context this pass threads out (one-shot dispatch)
-  step  = _self: _id: ctx: (dispatch.dispatch (cfg // { context = ctx; })).context;
+  step  = _self: _id: ctx: (dispatch.dispatch { inherit (cfg) extract combine; } (cfg // { context = ctx; })).context;
 
   converged =
     (scope.circular {

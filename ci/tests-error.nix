@@ -42,12 +42,12 @@ in
     # `.group`. With one kind, `unique` never compares its element, so the classification is only
     # forced if `deriveGroup` forces it; the refusal is `classifyKind`'s own named throw.
     test-deriveGroup-single-unknown-kind-refuses-at-definition = {
-      expr = builtins.seq (deriveGroup fx.groupOfKind (mkRule {
-        condition = { };
-        produce = _: _: [ ];
-        produces = [ "bogus" ];
-        identity = "typo";
-      })) true;
+      expr = builtins.seq (deriveGroup fx.groupOfKind (
+        mkRule {
+          produces = [ "bogus" ];
+          identity = "typo";
+        } { } (_: _: [ ])
+      )) true;
       expectedError = {
         type = "ThrownError";
         msg = "gen-dispatch: unknown action tag 'bogus'";
@@ -55,33 +55,24 @@ in
     };
   };
 
-  # ── THE DOOR-CHECK BYTES (den-hoag-7gp66 P1) — R6's naming, pinned per door. `ci/tests/door-
-  # checks.nix` pins that each door's violations are CATCHABLE; a boolean cannot see WHICH refusal
-  # fired, so WHICH is pinned here, one golden per violation type per door. `chain` (RECORD class)
-  # carries only the missing-field golden: an unknown field is R5's admitted case, and
-  # `ci/tests/door-checks.nix` already pins that it does not throw.
+  # ── THE DOOR BYTES (den-hoag-7gp66 P1, reshaped by P2) — R6's naming, pinned per door.
+  # `ci/tests/door-checks.nix` pins that each door's violations are CATCHABLE; a boolean cannot see
+  # WHICH refusal fired, so WHICH is pinned here. After P2 the options are a closed set of their own,
+  # first (`mkRule`, `dispatch`); `dispatch`'s operands and `override`'s two rules are open record
+  # doors, so each carries a missing-field golden and no unknown-field one (R5's admitted case).
+  # `mkRule`'s `condition`/`produce` and `chain`'s `extract` are positional: their arity is
+  # structural, so they have no field to be missing.
   flake.testsError.door-checks = {
-    test-mkrule-missing-required-field-message = {
-      expr = mkRule { condition = { }; };
-      expectedError = {
-        type = "ThrownError";
-        msg = exactly "gen-dispatch.mkRule: required field 'produce' is missing (required: 'condition', 'produce') (in prelude.checkRequired)";
-      };
-    };
     test-mkrule-unknown-option-message = {
-      expr = mkRule {
-        condition = { };
-        produce = _id: _ctx: [ ];
-        zzqran7f = 1;
-      };
+      expr = mkRule { zzqran7f = 1; };
       expectedError = {
         type = "ThrownError";
-        msg = exactly "gen-dispatch.mkRule: 'zzqran7f' is not an option of this door; the options are closed (accepted: 'condition', 'produce', 'nac', 'identity', 'priority', 'overrides', 'group', 'produces') (in prelude.checkOptions)";
+        msg = exactly "gen-dispatch.mkRule: 'zzqran7f' is not an option of this door; the options are closed (accepted: 'nac', 'identity', 'priority', 'overrides', 'group', 'produces') (in prelude.checkOptions)";
       };
     };
 
-    test-dispatch-missing-required-field-message = {
-      expr = dispatch {
+    test-dispatch-missing-operand-message = {
+      expr = dispatch { } {
         rules = [ ];
         id = null;
         context = { };
@@ -96,50 +87,45 @@ in
       };
     };
     test-dispatch-unknown-option-message = {
+      expr = dispatch { zzqran7f = 1; };
+      expectedError = {
+        type = "ThrownError";
+        msg = exactly "gen-dispatch.dispatch: 'zzqran7f' is not an option of this door; the options are closed (accepted: 'exclusive', 'extract', 'combine') (in prelude.checkOptions)";
+      };
+    };
+    # An operand placed in the options position, the old one-record call shape, is refused by name
+    # at the options application.
+    test-dispatch-old-one-record-shape-message = {
       expr = dispatch {
         rules = [ ];
-        id = null;
-        context = { };
-        match =
-          _cond: _id: _ctx:
-          true;
-        classify = _a: "g";
-        groupOrder = [ "g" ];
-        zzqran7f = 1;
+        exclusive = true;
       };
       expectedError = {
         type = "ThrownError";
-        msg = exactly "gen-dispatch.dispatch: 'zzqran7f' is not an option of this door; the options are closed (accepted: 'rules', 'id', 'context', 'match', 'classify', 'groupOrder', 'exclusive', 'extract', 'combine') (in prelude.checkOptions)";
+        msg = exactly "gen-dispatch.dispatch: 'rules' is not an option of this door; the options are closed (accepted: 'exclusive', 'extract', 'combine') (in prelude.checkOptions)";
       };
     };
 
-    test-chain-missing-required-field-message = {
-      expr = chain { };
+    test-override-missing-rule-message = {
+      expr = genDispatch.override { original = mkRule { } { } (_id: _ctx: [ ]); };
       expectedError = {
         type = "ThrownError";
-        msg = exactly "gen-dispatch.chain: required field 'extract' is missing (required: 'extract') (in prelude.checkRequired)";
+        msg = exactly "gen-dispatch.override: required field 'replacement' is missing (required: 'original', 'replacement') (in prelude.checkRequired)";
       };
     };
 
-    # LIVE CONTROL, same run, same output: a well-formed call on each door class answers rather
-    # than throwing — the vacuity every cell above asserting a refusal invites, discharged here.
+    # LIVE CONTROL, same run, same output: a well-formed call on each door answers rather than
+    # throwing — the vacuity every cell above asserting a refusal invites, discharged here.
     test-control-mkrule-well-formed-call-answers = {
-      expr =
-        (mkRule {
-          condition = { };
-          produce = _id: _ctx: [ ];
-        }).priority;
+      expr = (mkRule { } { } (_id: _ctx: [ ])).priority;
       expected = 0;
     };
     test-control-chain-well-formed-call-answers = {
       expr =
         let
-          r = mkRule {
-            condition = { };
-            produce = _id: _ctx: [ ];
-          };
+          r = mkRule { } { } (_id: _ctx: [ ]);
         in
-        (chain { extract = _actions: { }; } r r).identity;
+        (chain (_actions: { }) r r).identity;
       expected = null;
     };
   };

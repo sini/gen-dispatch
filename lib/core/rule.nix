@@ -71,47 +71,31 @@ let
   # string key. There is nothing here to exclude the accessor from, and adding the
   # helper would assert a protection this library has no site for.
 
-  # MIXED class (den-hoag-7gp66 P1, R5): required `condition`/`produce` and optional
-  # `nac`/`identity`/`priority`/`overrides`/`group`/`produces` were a native closed formal, so an
-  # unknown option or a missing required field aborted uncatchably (ADR-0025 item 1). `checkOptions`
-  # composed over `checkRequired` (gate C3) makes both refusals NAMED and CATCHABLE; the defaults
-  # below re-apply exactly what the native formal's own `?` defaults supplied.
-  mkRule =
-    args:
-    let
-      checked =
-        prelude.checkOptions "gen-dispatch.mkRule"
-          [
-            "condition"
-            "produce"
-            "nac"
-            "identity"
-            "priority"
-            "overrides"
-            "group"
-            "produces"
-          ]
-          (
-            prelude.checkRequired "gen-dispatch.mkRule" [
-              "condition"
-              "produce"
-            ] args
-          );
-    in
-    # `seq checked` (den-hoag-7gp66 P1 lazy-doors fix): the return was a bare attrset literal, so
-    # its own WHNF forced none of `condition`/`produce`/etc — checkOptions/checkRequired sat unread
-    # until a caller touched a field, admitting a bad record at the door's own application. Same
-    # idiom gen-settings' `resolveOne`/`resolveAll`/`injectAspectSettings` (0474486) uses.
-    builtins.seq checked {
-      condition = checked.condition;
-      produce = checked.produce;
-      nac = checked.nac or null;
-      identity = checked.identity or null;
-      priority = checked.priority or 0;
-      overrides = checked.overrides or [ ];
-      group = checked.group or null;
-      produces = checked.produces or null;
-    };
+  # `mkRule { nac ?; identity ?; priority ?; overrides ?; group ?; produces ?; } condition produce`
+  # (P2, R7): the options are one closed set, first, checked when `mkRule opts` is formed
+  # (`prelude.door`). `condition` and `produce` are positional, guard before effect: the condition is
+  # the data the dispatcher's `match` interprets, and `produce` is the function fired when it holds.
+  # This file's own caller (`fromFunction`) calls the unchecked core.
+  mkRuleCore = o: condition: produce: {
+    inherit condition produce;
+    nac = o.nac or null;
+    identity = o.identity or null;
+    priority = o.priority or 0;
+    overrides = o.overrides or [ ];
+    group = o.group or null;
+    produces = o.produces or null;
+  };
+  mkRule = prelude.door {
+    name = "gen-dispatch.mkRule";
+    optional = [
+      "nac"
+      "identity"
+      "priority"
+      "overrides"
+      "group"
+      "produces"
+    ];
+  } mkRuleCore;
 
   fromFunction =
     fn:
@@ -125,9 +109,7 @@ let
       target = if isIntensional fn then fn.__functor fn else fn;
       args = builtins.functionArgs target;
     in
-    mkRule {
-      condition = args;
-      produce = _id: ctx: fn ctx;
+    mkRuleCore {
       # `identity` is the OVERRIDE HANDLE — `dispatch` reads it as `acc.overridden ?
       # ${r.identity}` — so it MINTS, and a name-only handle is rejected wherever it
       # mints. `name` is the program point and is constant across a constructor's
@@ -146,7 +128,7 @@ let
       # A partial-preimage mint (gen-algebra's declared-revision registry coordinate)
       # can still collide under this identity and must never reach this arm as a key.
       identity = if isIntensional fn then taggedHandle (identityOf fn) else null;
-    };
+    } args (_id: ctx: fn ctx);
 
   # LIMITATION: `id` is BOUND here and NEVER READ — every arm below decides purely
   # from `condition` and `ctx`. A rule dispatched through this matcher therefore

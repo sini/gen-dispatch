@@ -19,29 +19,34 @@ in
     test-priority-ordering = {
       expr =
         let
-          r = dispatch {
+          r = dispatch { } {
             rules = [
-              (mkRule {
-                condition = {
+              (mkRule
+                {
+                  priority = 0;
+                }
+                {
                   host = false;
-                };
-                produce = _id: _ctx: [ (fx.act { v = "low"; }) ];
-                priority = 0;
-              })
-              (mkRule {
-                condition = {
+                }
+                (_id: _ctx: [ (fx.act { v = "low"; }) ])
+              )
+              (mkRule
+                {
+                  priority = 10;
+                }
+                {
                   host = false;
-                };
-                produce = _id: _ctx: [ (fx.act { v = "high"; }) ];
-                priority = 10;
-              })
+                }
+                (_id: _ctx: [ (fx.act { v = "high"; }) ])
+              )
             ];
             id = "x";
             context = {
               host = { };
             };
-            inherit match groupOrder;
+            inherit match;
             classify = fx.classify;
+            inherit groupOrder;
           };
         in
         map (a: a.v) r.actions.default;
@@ -54,31 +59,40 @@ in
     test-exclusive-mode = {
       expr =
         let
-          r = dispatch {
-            rules = [
-              (mkRule {
-                condition = {
-                  host = false;
+          r =
+            dispatch
+              {
+                exclusive = true;
+              }
+              {
+                rules = [
+                  (mkRule
+                    {
+                      priority = 0;
+                    }
+                    {
+                      host = false;
+                    }
+                    (_id: _ctx: [ (fx.act { v = "low"; }) ])
+                  )
+                  (mkRule
+                    {
+                      priority = 10;
+                    }
+                    {
+                      host = false;
+                    }
+                    (_id: _ctx: [ (fx.act { v = "high"; }) ])
+                  )
+                ];
+                id = "x";
+                context = {
+                  host = { };
                 };
-                produce = _id: _ctx: [ (fx.act { v = "low"; }) ];
-                priority = 0;
-              })
-              (mkRule {
-                condition = {
-                  host = false;
-                };
-                produce = _id: _ctx: [ (fx.act { v = "high"; }) ];
-                priority = 10;
-              })
-            ];
-            id = "x";
-            context = {
-              host = { };
-            };
-            inherit match groupOrder;
-            classify = fx.classify;
-            exclusive = true;
-          };
+                inherit match;
+                classify = fx.classify;
+                inherit groupOrder;
+              };
         in
         map (a: a.v) r.actions.default;
       expected = [ "high" ];
@@ -87,30 +101,35 @@ in
     test-override-suppresses = {
       expr =
         let
-          r = dispatch {
+          r = dispatch { } {
             rules = [
-              (mkRule {
-                condition = {
+              (mkRule
+                {
+                  identity = "base-rule";
+                }
+                {
                   host = false;
-                };
-                produce = _id: _ctx: [ (fx.act { v = "original"; }) ];
-                identity = "base-rule";
-              })
-              (mkRule {
-                condition = {
+                }
+                (_id: _ctx: [ (fx.act { v = "original"; }) ])
+              )
+              (mkRule
+                {
+                  identity = "custom-rule";
+                  overrides = [ "base-rule" ];
+                }
+                {
                   host = false;
-                };
-                produce = _id: _ctx: [ (fx.act { v = "replacement"; }) ];
-                identity = "custom-rule";
-                overrides = [ "base-rule" ];
-              })
+                }
+                (_id: _ctx: [ (fx.act { v = "replacement"; }) ])
+              )
             ];
             id = "x";
             context = {
               host = { };
             };
-            inherit match groupOrder;
+            inherit match;
             classify = fx.classify;
+            inherit groupOrder;
           };
         in
         map (a: a.v) r.actions.default;
@@ -120,23 +139,26 @@ in
     test-override-missing-target-noop = {
       expr =
         let
-          r = dispatch {
+          r = dispatch { } {
             rules = [
-              (mkRule {
-                condition = {
+              (mkRule
+                {
+                  identity = "custom";
+                  overrides = [ "nonexistent" ];
+                }
+                {
                   host = false;
-                };
-                produce = _id: _ctx: [ (fx.act { }) ];
-                identity = "custom";
-                overrides = [ "nonexistent" ];
-              })
+                }
+                (_id: _ctx: [ (fx.act { }) ])
+              )
             ];
             id = "x";
             context = {
               host = { };
             };
-            inherit match groupOrder;
+            inherit match;
             classify = fx.classify;
+            inherit groupOrder;
           };
         in
         builtins.length r.actions.default;
@@ -150,24 +172,26 @@ in
       let
         mk =
           v:
-          mkRule {
-            condition = {
+          mkRule
+            {
+              priority = 5;
+            }
+            {
               host = false;
-            };
-            produce = _id: _ctx: [ (fx.act { inherit v; }) ];
-            priority = 5;
-          };
+            }
+            (_id: _ctx: [ (fx.act { inherit v; }) ]);
         run =
           rules:
           map (a: a.v)
-            (dispatch {
+            (dispatch { } {
               inherit rules;
               id = "x";
               context = {
                 host = { };
               };
-              inherit match groupOrder;
+              inherit match;
               classify = fx.classify;
+              inherit groupOrder;
             }).actions.default;
       in
       {
