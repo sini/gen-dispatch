@@ -1,6 +1,7 @@
 {
   lib,
   genDispatch,
+  genAlgebra,
   ...
 }:
 let
@@ -14,8 +15,8 @@ let
   # A record of the INTENSIONAL SHAPE — the four fields `fromFunction`'s guard reads
   # (`isAttrs` + `name`/`__functor`/`closure`). It is deliberately NOT gen-algebra's
   # constructor, which is an ENCODER — `mkIntensional : hashIdentity -> registry -> ctor
-  # -> args` — and whose values are therefore always MINTED, under a digest DERIVED from
-  # the registry coordinate.
+  # -> args` — and whose values are therefore always COMPARED, by a subject DERIVED from
+  # the registry coordinate (`test-a-registered-rule-has-no-handle` reads one).
   #
   # ★ THE CELLS BELOW CHOOSE THE REGIME AND THE DIGEST, AND AN ENCODER-BUILT VALUE CANNOT
   # LET THEM. The unmigrated arm is defined by the ABSENCE of `__mint`, which no
@@ -36,6 +37,42 @@ let
 in
 {
   flake.tests.rule = {
+    # A rule built from a REGISTERED construction (gen-algebra's encoder) has no override handle: the
+    # encoder emits no mint (it is compared by its declared subject, never keyed), so `identity` is
+    # `null` and `override` refuses it by name. The encoder is handed a minting authority that
+    # throws, which shows it computes no digest at all.
+    test-a-registered-rule-has-no-handle = {
+      expr =
+        let
+          noDigest =
+            _: _: _:
+            throw "the encoder computed a digest";
+          registry = {
+            revision = "r1";
+            members.r = _a: { host, ... }: [ ];
+          };
+          r = fromFunction (genAlgebra.mkIntensional noDigest registry "r" { });
+          overridden = builtins.tryEval (
+            builtins.deepSeq (genDispatch.override {
+              original = r;
+              replacement = mkRule { } { } (_id: _ctx: [ ]);
+            }) null
+          );
+        in
+        {
+          identity = r.identity;
+          overrideRefused = !overridden.success;
+          condition = r.condition;
+        };
+      expected = {
+        identity = null;
+        overrideRefused = true;
+        condition = {
+          host = false;
+        };
+      };
+    };
+
     test-mkrule-defaults = {
       expr =
         let

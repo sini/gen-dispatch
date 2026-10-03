@@ -126,7 +126,10 @@ let
       # Only the minted arm survives as a handle, so there is nothing left for it to
       # collide with — see `taggedHandle` — PROVIDED the mint is over a TOTAL preimage.
       # A partial-preimage mint (gen-algebra's declared-revision registry coordinate)
-      # can still collide under this identity and must never reach this arm as a key.
+      # could still collide under this identity, so gen-algebra's encoder emits none: a
+      # registered construction is COMPARED by its declared subject (`__mint.unmintable`),
+      # and a rule built from one takes the `null` arm — no override handle, and
+      # `override` refuses it by name.
       identity = if isIntensional fn then taggedHandle (identityOf fn) else null;
     } args (_id: ctx: fn ctx);
 
