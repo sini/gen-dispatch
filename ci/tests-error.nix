@@ -12,6 +12,7 @@
 # `msg` is a POSIX ERE, not a literal.
 {
   genDispatch,
+  genAlgebra,
   prelude,
   ...
 }:
@@ -123,6 +124,30 @@ in
       expectedError = {
         type = "ThrownError";
         msg = exactly "gen-dispatch.dispatch: 'exclusive' is an option of gen-dispatch.dispatch, not a field of this record (in prelude.checkGuarded)";
+      };
+    };
+
+    # a rule built from a registered construction has no override handle, and `override` names that
+    test-override-of-a-registered-rule-is-refused-by-name = {
+      expr = genDispatch.override {
+        original = genDispatch.fromFunction (
+          genAlgebra.mkIntensional
+            (
+              _: _: _:
+              throw "no digest"
+            )
+            {
+              revision = "r1";
+              members.r = _a: { host, ... }: [ ];
+            }
+            "r"
+            { }
+        );
+        replacement = mkRule { } { } (_id: _ctx: [ ]);
+      };
+      expectedError = {
+        type = "ThrownError";
+        msg = exactly "gen-dispatch: cannot override anonymous rule";
       };
     };
 

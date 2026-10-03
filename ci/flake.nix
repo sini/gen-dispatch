@@ -33,7 +33,11 @@
       # explicit arguments — which is what keeps that cell pure, since supplying the formal means the
       # shim's fetching default is never forced. It is the SAME instance `genDispatch` above is built
       # from, so the two sides of that comparison differ in entry point and in nothing else.
-      specialArgs = { inherit genDispatch genSelect prelude; };
+      specialArgs = {
+        inherit genDispatch genSelect prelude;
+        # the encoder itself, for the cell asserting a registered rule has no handle
+        genAlgebra = gen-select.inputs.gen-algebra.lib;
+      };
       # `testModules` is the batch asserter's quantifier, which forces every cell's `expr`
       # unconditionally, so a cell asserting an error lives outside it, on `flake.testsError`.
       extraModules = [ ./tests-error.nix ];

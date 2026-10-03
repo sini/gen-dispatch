@@ -182,11 +182,16 @@ Converts a Nix function into a rule using `builtins.functionArgs` as the conditi
 
 Each surviving arm carries a one-character **regime tag** before its payload, so the two never occupy one space:
 
-| regime     | the value carries     | `identity`                                                 |
-| ---------- | --------------------- | ---------------------------------------------------------- |
-| minted     | `__mint.minted`       | `m:` + the minted identity — measured `"m:its:aaaa"`       |
-| unmintable | `__mint`, no `minted` | **`null` — the refusal**                                   |
-| unmigrated | no `__mint`           | `u:` + the program-point name — measured `"u:host-guards"` |
+| regime     | the value carries     | `identity`                                           |
+| ---------- | --------------------- | ---------------------------------------------------- |
+| minted     | `__mint.minted`       | `m:` + the minted identity — measured `"m:its:aaaa"` |
+| unmintable | `__mint`, no `minted` | **`null` — the refusal**                             |
+| unmigrated | no `__mint`           | **`null` — the refusal**                             |
+
+**A rule built from gen-algebra's encoder (`mkIntensional`) takes the unmintable arm.** A registered
+construction is compared by its declared subject and never minted, because its registry coordinate
+discharges only on a declared `revision`; a digest over it would be a decision predicate, never a key.
+So such a rule has no override handle, and `override` refuses it by name.
 
 A handle must be exact. A program point is constant across a constructor's instances, so handing it out as a handle gives every value of one constructor **one** handle, and overriding any of them silently replaces the wrong rule. Where no identity can be minted the rule gets none, and `override` then throws `cannot override anonymous rule` by name — a named refusal in place of a silent wrong-rule override.
 
@@ -198,10 +203,10 @@ It bounds what the substrate **derives**, not the whole namespace: an `identity`
 # { host, ... } is the condition -- required arg "host" must be in context
 dispatch.fromFunction ({ host, ... }: [ (fx.spawn { kind = "user"; }) ])
 
-# An intensional value carries dedup identity. gen-algebra's constructor is an ENCODER --
+# An intensional value: gen-algebra's constructor is an ENCODER --
 # mkIntensional : hashIdentity -> registry -> ctor -> args -- so the program point is the
-# constructor name, the registry's builder supplies the function, and the identity is
-# derived from the registry coordinate rather than taken from the caller.
+# constructor name and the registry's builder supplies the function. It is compared, never
+# minted, so the rule's `identity` is null and it cannot be overridden.
 dispatch.fromFunction (algebra.mkIntensional hashIdentity ruleRegistry "host-init" { })
 ```
 
