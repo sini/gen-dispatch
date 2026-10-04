@@ -395,7 +395,7 @@ nix repl --impure --file ci/repl.nix       # all exports in scope for interactiv
 and `nix flake check ./ci` are unguarded: they read a git-filtered copy of the tree, so an untracked
 cell is silently absent and the run stays green.
 
-There are **86 tests across 11 suites** (`nix-unit --flake ./ci#tests` ⇒ `86/86 successful`, `843e12b`) (`rule`, `actions`, `dispatch-basic`, `dispatch-groups`, `dispatch-nac`, `conflict`, `compose`, `declared`, `entry`, `integration`, `purity`). The gen-select adapter's cross-lib coverage moved to gen-harness's ci (`dispatch-select-adapter`), which pins gen-select directly rather than through this library's own ci. Iteration/convergence coverage lives cross-repo now: the `gen-scope.circular` Kleene ascent is tested in gen-scope, and the loop⊥step composition (one-shot dispatch threaded to a fixpoint) is exercised by consumers such as gen-resolve.
+There are **123 tests across 14 suites** (`nix-unit --flake ./ci#tests` ⇒ `123/123 successful`) (`rule`, `actions`, `dispatch-basic`, `dispatch-groups`, `dispatch-nac`, `conflict`, `compose`, `declared`, `entry`, `integration`, `purity`, `door-checks`, `door-application-strictness`, `dispatch-select-adapter`). The gen-select adapter's cross-lib coverage (`dispatch-select-adapter`) lives here, against the gen-select pin `integration` already uses: this ci is the one node reaching both subjects, and hosting it in gen-harness's ci closed a revision cycle through every member's harness pin. Iteration/convergence coverage lives cross-repo now: the `gen-scope.circular` Kleene ascent is tested in gen-scope, and the loop⊥step composition (one-shot dispatch threaded to a fixpoint) is exercised by consumers such as gen-resolve.
 
 ## Theoretical Foundations
 
