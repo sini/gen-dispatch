@@ -67,6 +67,13 @@ in
       });
       expected = true;
     };
+    # PARITY (den-hoag-ak8va, gate C1; gating): `dispatch` publishes its operand record AS DATA,
+    # `__contract.next`, and the nest, read without application, equals the contract the applied
+    # step answers with.
+    test-dispatch-publishes-its-operand-step-as-next = {
+      expr = (dispatch.__contract.next or null) == (dispatch { }).__contract;
+      expected = true;
+    };
     test-mkrule-valid-call-is-unchanged = {
       expr = {
         inherit (validRule)

@@ -30,13 +30,14 @@ let
   # once, here; a call supplies only the bodies.
   dispatchOptions = prelude.door {
     name = "gen-dispatch.dispatch";
+    next = dispatchOperandsSpec;
     optional = [
       "exclusive"
       "extract"
       "combine"
     ];
   };
-  dispatchOperands = prelude.door {
+  dispatchOperandsSpec = {
     name = "gen-dispatch.dispatch";
     required = [
       "rules"
@@ -56,6 +57,7 @@ let
     # calls back into `dispatchOperands` (spec p2.3.2 v1.2).
     optionsStep = dispatch;
   };
+  dispatchOperands = prelude.door dispatchOperandsSpec;
   dispatch = dispatchOptions (o: dispatchOperands (dispatchCore o));
 
   dispatchCore =
