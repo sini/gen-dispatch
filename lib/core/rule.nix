@@ -63,13 +63,11 @@ let
       null;
 
   # ★ WHY THIS LIBRARY CARRIES NO `comparisonSubject`, unlike the other readers of this
-  # discipline. Those exclude `__id` from the value they compare, because `__id` is the
-  # accessor a consumer reads when it DEMANDS an identity, and in the sealed regime that
-  # accessor IS the named refusal — so comparing a record whole would force the refusal
-  # inside the decision it exists to permit. gen-dispatch DERIVES a handle and compares
-  # no reified value at all: `identity` is read as `acc.overridden ? ${r.identity}`, a
-  # string key. There is nothing here to exclude the accessor from, and adding the
-  # helper would assert a protection this library has no site for.
+  # discipline. Those compare a reified value (a registered construction by its declared
+  # subject, any other value whole). gen-dispatch DERIVES a handle and compares no
+  # reified value at all: `identity` is read as `acc.overridden ? ${r.identity}`, a
+  # string key. There is no value here to choose a subject for, and adding the helper
+  # would assert a decision this library has no site for.
 
   # `mkRule { nac ?; identity ?; priority ?; overrides ?; group ?; produces ?; } condition produce`
   # (P2, R7): the options are one closed set, first, checked when `mkRule opts` is formed
