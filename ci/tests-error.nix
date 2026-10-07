@@ -35,6 +35,9 @@ let
   # (`gen-prelude/ci/tests/door.nix`): `escapeRegex` neutralises metacharacters so the pattern reads
   # as the text as written, anchored at both ends against `expectedError.msg`'s SEARCH semantics.
   exactly = msg: "^" + prelude.escapeRegex msg + "$";
+  # gen-prelude's refusal text, composed with this library's own literal door, field and accepted
+  # set (den-hoag-7jltk): every assertion kept, none of gen-prelude's wording copied.
+  inherit (prelude) refusals;
 in
 {
   flake.testsError.declared = {
@@ -68,7 +71,16 @@ in
       expr = mkRule { zzqran7f = 1; };
       expectedError = {
         type = "ThrownError";
-        msg = exactly "gen-dispatch.mkRule: 'zzqran7f' is not an option of this door; the options are closed (accepted: 'nac', 'identity', 'priority', 'overrides', 'group', 'produces') (in prelude.checkOptions)";
+        msg = exactly (
+          refusals.unknownOption "gen-dispatch.mkRule" [
+            "nac"
+            "identity"
+            "priority"
+            "overrides"
+            "group"
+            "produces"
+          ] "zzqran7f"
+        );
       };
     };
 
@@ -84,14 +96,25 @@ in
       };
       expectedError = {
         type = "ThrownError";
-        msg = exactly "gen-dispatch.dispatch: required field 'groupOrder' is missing (required: 'rules', 'id', 'context', 'match', 'classify', 'groupOrder') (in prelude.checkRequired)";
+        msg = exactly (
+          refusals.missingField "gen-dispatch.dispatch" [
+            "rules"
+            "id"
+            "context"
+            "match"
+            "classify"
+            "groupOrder"
+          ] "groupOrder"
+        );
       };
     };
     test-dispatch-unknown-option-message = {
       expr = dispatch { zzqran7f = 1; };
       expectedError = {
         type = "ThrownError";
-        msg = exactly "gen-dispatch.dispatch: 'zzqran7f' is not an option of this door; the options are closed (accepted: 'exclusive', 'extract', 'combine') (in prelude.checkOptions)";
+        msg = exactly (
+          refusals.unknownOption "gen-dispatch.dispatch" [ "exclusive" "extract" "combine" ] "zzqran7f"
+        );
       };
     };
     # An operand placed in the options position, the old one-record call shape, is refused by name
@@ -103,7 +126,9 @@ in
       };
       expectedError = {
         type = "ThrownError";
-        msg = exactly "gen-dispatch.dispatch: 'rules' is not an option of this door; the options are closed (accepted: 'exclusive', 'extract', 'combine') (in prelude.checkOptions)";
+        msg = exactly (
+          refusals.unknownOption "gen-dispatch.dispatch" [ "exclusive" "extract" "combine" ] "rules"
+        );
       };
     };
 
@@ -123,7 +148,7 @@ in
       };
       expectedError = {
         type = "ThrownError";
-        msg = exactly "gen-dispatch.dispatch: 'exclusive' is an option of gen-dispatch.dispatch, not a field of this record (in prelude.checkGuarded)";
+        msg = exactly (refusals.guardedField "gen-dispatch.dispatch" "gen-dispatch.dispatch" "exclusive");
       };
     };
 
@@ -155,7 +180,9 @@ in
       expr = genDispatch.override { original = mkRule { } { } (_id: _ctx: [ ]); };
       expectedError = {
         type = "ThrownError";
-        msg = exactly "gen-dispatch.override: required field 'replacement' is missing (required: 'original', 'replacement') (in prelude.checkRequired)";
+        msg = exactly (
+          refusals.missingField "gen-dispatch.override" [ "original" "replacement" ] "replacement"
+        );
       };
     };
 
