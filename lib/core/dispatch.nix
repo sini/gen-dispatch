@@ -1,6 +1,6 @@
 # One-shot stratified dispatch: walk groups in the caller-supplied `groupOrder`,
 # threading the context group->group via extract/combine. Within each group: match,
-# resolve overrides (accumulated FORWARD across groups) + priority/exclusive, fire,
+# resolve overrides (accumulated FORWARD across groups) + priority/exclusive/unique, fire,
 # classify-validate, group. Single/degenerate group + identity extract/combine
 # reproduces the prior single-pass behavior exactly. Group ORDERING is not gen-dispatch's
 # concern — the caller pre-orders (e.g. gen-graph's topological sort over an entry* DAG).
@@ -20,7 +20,7 @@ let
     unique
     ;
 
-  # `dispatch { exclusive ?; extract ?; combine ?; } { rules; id; context; match; classify; groupOrder; }`
+  # `dispatch { exclusive ?; unique ?; extract ?; combine ?; } { rules; id; context; match; classify; groupOrder; }`
   # (P2, R7). The options are one closed set, first, checked when `dispatch opts` is formed. The six
   # operands stay ONE required-argument record (R7 (a)): they are three pairs of one role each — the
   # interpreters `match`/`classify` (both functions), the program `rules`/`groupOrder` (both lists) and
@@ -33,6 +33,7 @@ let
     next = dispatchOperandsSpec;
     optional = [
       "exclusive"
+      "unique"
       "extract"
       "combine"
     ];
@@ -50,7 +51,7 @@ let
     open = true;
     # (den-hoag-7gp66 P2 v1.2, premise 7) an option of dispatchOptions given here instead — e.g.
     # `dispatch { } (cfg // { exclusive = true; })` — is refused by name rather than silently
-    # admitted and ignored: `exclusive`/`extract`/`combine` belong on the OPTIONS step, one
+    # admitted and ignored: `exclusive`/`unique`/`extract`/`combine` belong on the OPTIONS step, one
     # position earlier. Names the OUTER, already-built door (`dispatch`, not the unapplied
     # `dispatchOptions` constructor): `dispatch.__contract` is `dispatchOptions`'s own contract,
     # independent of `dispatch`'s body, so this is safe even though `dispatch`'s own definition
@@ -72,6 +73,8 @@ let
         groupOrder
         ;
       exclusive = o.exclusive or false;
+      # `unique` would shadow prelude's `unique`, used by the classify-validation below.
+      requireUnique = o.unique or false;
       extract = o.extract or (_actions: { });
       combine = o.combine or (ctx: _delta: ctx);
 
@@ -131,6 +134,14 @@ let
               in
               filter (r: r.priority == topPriority) sorted;
 
+          # `unique`: at most one rule may survive the exclusive filter; a tie is refused by name rather
+          # than fired additively.
+          survivors =
+            if requireUnique && builtins.length filtered > 1 then
+              throw "gen-dispatch: unique dispatch of group \"${groupName}\" has ${toString (builtins.length filtered)} surviving rules: ${builtins.concatStringsSep ", " (map ruleName filtered)}"
+            else
+              filtered;
+
           results = map (r: {
             inherit (r) identity;
             actions = r.produce id acc.ctx;
@@ -139,7 +150,7 @@ let
             # declaration and skips the fire-and-classify inference below. `or null` keeps rules that
             # predate the field (e.g. `chain` results) on the classify path — byte-identical.
             declared = (r.produces or null) != null;
-          }) filtered;
+          }) survivors;
 
           validated = map (
             res:

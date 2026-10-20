@@ -38,7 +38,7 @@ gen-dispatch is one dispatch **step** — a pure function of `(rules, context)`.
 
 The hard part of rule dispatch is the generic guard→effect protocol: rules declare *what* they need, and the engine handles *when* and *how* they fire (match, NAC, priority, override, phase threading). Hand-rolling this caused a class of context-threading regressions in den (PRs 408-437). gen-dispatch extracts the protocol as one dispatch **step**.
 
-A **rule** is a guarded action producer (`mkRule` / `fromFunction`). A **dispatch step** (`dispatch`) walks a caller-supplied group order, and for each group: matches conditions against the threaded context, applies conflict resolution (override → priority → specificity), fires the survivors, classifies their actions into groups, then threads the resulting context forward into the next group. The result is `{ actions; orderedGroups; context; }`.
+A **rule** is a guarded action producer (`mkRule` / `fromFunction`). A **dispatch step** (`dispatch`) walks a caller-supplied group order, and for each group: matches conditions against the threaded context, applies conflict resolution (override → priority → exclusive → unique), fires the survivors, classifies their actions into groups, then threads the resulting context forward into the next group. The result is `{ actions; orderedGroups; context; }`.
 
 Three concerns meet at a dispatch step, and gen-dispatch owns exactly one of them:
 
@@ -100,7 +100,7 @@ gen-dispatch splits into two tiers:
 - **Core tier** — depends on gen-prelude only. Conditions are opaque; the caller provides `match : condition -> id -> ctx -> bool`.
 - **Adapter tier** — imports gen-select. Bridges gen-select selectors into gen-dispatch conditions with `mkMatch` and CSS-like `selectorSpecificity`.
 
-Consumers without gen-select can use gen-dispatch with custom match functions. Consumers with gen-select get selector pattern matching and CSS-like specificity for conflict resolution. The adapter lives under `lib.adapters.select`; gen-select is a CI-only input (it is not a runtime dependency of the core surface).
+Consumers without gen-select can use gen-dispatch with custom match functions. Consumers with gen-select get selector pattern matching and CSS-like specificity, a count a caller may supply as a rule's `priority`. The adapter lives under `lib.adapters.select`; gen-select is a CI-only input (it is not a runtime dependency of the core surface).
 
 ## API Reference
 
@@ -110,7 +110,8 @@ The full exported surface is `{ dispatch, mkRule, fromFunction, fromFunctionMatc
 
 ```nix
 dispatch {
-  exclusive ? false;  # only highest-priority group fires
+  exclusive ? false;  # only each group's highest-priority rules fire
+  unique ? false;     # more than one rule surviving the exclusive filter is refused by name
   extract ? (_: {});       # { group = [action]; } -> ctx delta (per-group threading; default no-op)
   combine ? (ctx: _: ctx); # ctx -> delta -> ctx (default identity = no threading)
 } {
@@ -135,7 +136,7 @@ applied.
 
 One-shot dispatch, a pure function of `(rules, context)`. Fires all matching rules in the supplied `groupOrder` — lower groups complete before higher groups begin, with context threaded between groups. Ordering is the caller's concern (`gen-graph` builds it from `before`/`after` constraints); dispatch just walks the list. `orderedGroups` in the result is the present-only subsequence of `groupOrder`. Validates the single-group-per-rule constraint.
 
-**Dispatch sequence:** walk `groupOrder`; per group — select this group's rules (an ungrouped rule under multi-group dispatch throws) → NAC + condition match against the threaded context → forward-accumulating override suppression (carries to later groups) → priority sort → exclusive filter → fire → classify-validate (single-group-per-rule + declared-group consistency) → group → thread context (`combine`/`extract`) into the next group.
+**Dispatch sequence:** walk `groupOrder`; per group — select this group's rules (an ungrouped rule under multi-group dispatch throws) → NAC + condition match against the threaded context → forward-accumulating override suppression (carries to later groups) → priority sort → exclusive filter → unique check → fire → classify-validate (single-group-per-rule + declared-group consistency) → group → thread context (`combine`/`extract`) into the next group.
 
 ### Convergence (the loop is gen-resolve's)
 
@@ -262,13 +263,15 @@ dispatch.groupOf rule               # => "resolution"  (derived, never fired)
 
 Three strategies, applied in order:
 
-| Strategy    | Tier    | Mechanism                                                   |
-| ----------- | ------- | ----------------------------------------------------------- |
-| Override    | Core    | Rule names identities it replaces via the `overrides` field |
-| Priority    | Core    | Numeric `priority` (higher first), `exclusive` mode         |
-| Specificity | Adapter | Selector constraint term count via `selectorSpecificity`    |
+| Strategy | Tier | Mechanism                                                                      |
+| -------- | ---- | ------------------------------------------------------------------------------ |
+| Override | Core | Rule names identities it replaces via the `overrides` field                    |
+| Priority | Core | Numeric `priority` (higher first), `exclusive` mode                            |
+| Unique   | Core | `unique` mode: more than one surviving rule is refused, naming group and rules |
 
-**Resolution order:** override suppression → priority sort → specificity (adapter) → ties fire additively. Equal-priority ties are ordered deterministically by declaration order (a total-order sort, independent of `builtins.sort` stability or rule-list enumeration order).
+Dispatch reads no specificity of its own: the adapter's `selectorSpecificity` (a selector's constraint term count) is a value a caller may supply as a rule's `priority`.
+
+**Resolution order:** override suppression → priority sort → exclusive filter → unique check → ties fire additively. Equal-priority ties are ordered deterministically by declaration order (a total-order sort, independent of `builtins.sort` stability or rule-list enumeration order).
 
 ### Rule Composition
 

@@ -59,6 +59,37 @@ in
     };
   };
 
+  # `unique` (den-hoag-ro5cu): two rules surviving the exclusive filter refuse by NAME — the group and
+  # both identities — when the group's actions are read.
+  flake.testsError.conflict = {
+    test-unique-two-survivors-refused-by-name = {
+      expr =
+        (dispatch
+          {
+            exclusive = true;
+            unique = true;
+          }
+          {
+            rules = map (v: mkRule { identity = v; } { } (_id: _ctx: [ (fx.spawn { inherit v; }) ])) [
+              "hem-a"
+              "hem-b"
+            ];
+            id = null;
+            context = { };
+            match =
+              _cond: _id: _ctx:
+              true;
+            inherit (fx) classify;
+            groupOrder = [ "structural" ];
+          }
+        ).actions.structural;
+      expectedError = {
+        type = "ThrownError";
+        msg = exactly "gen-dispatch: unique dispatch of group \"structural\" has 2 surviving rules: hem-a, hem-b";
+      };
+    };
+  };
+
   # ── THE DOOR BYTES (den-hoag-7gp66 P1, reshaped by P2) — R6's naming, pinned per door.
   # `ci/tests/door-checks.nix` pins that each door's violations are CATCHABLE; a boolean cannot see
   # WHICH refusal fired, so WHICH is pinned here. After P2 the options are a closed set of their own,
@@ -113,7 +144,12 @@ in
       expectedError = {
         type = "ThrownError";
         msg = exactly (
-          refusals.unknownOption "gen-dispatch.dispatch" [ "exclusive" "extract" "combine" ] "zzqran7f"
+          refusals.unknownOption "gen-dispatch.dispatch" [
+            "exclusive"
+            "unique"
+            "extract"
+            "combine"
+          ] "zzqran7f"
         );
       };
     };
@@ -127,7 +163,7 @@ in
       expectedError = {
         type = "ThrownError";
         msg = exactly (
-          refusals.unknownOption "gen-dispatch.dispatch" [ "exclusive" "extract" "combine" ] "rules"
+          refusals.unknownOption "gen-dispatch.dispatch" [ "exclusive" "unique" "extract" "combine" ] "rules"
         );
       };
     };

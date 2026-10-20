@@ -185,6 +185,7 @@ in
           dispatch.__functionArgs == builtins.functionArgs (
             {
               exclusive ? false,
+              unique ? false,
               extract ? null,
               combine ? null,
             }:
@@ -211,6 +212,7 @@ in
         true
         [
           "exclusive"
+          "unique"
           "extract"
           "combine"
         ]

@@ -13,6 +13,25 @@ let
   fx = mkActions { default = [ "act" ]; };
   match = fromFunctionMatch;
   groupOrder = [ "default" ];
+
+  uMk =
+    v: priority:
+    mkRule {
+      identity = v;
+      inherit priority;
+    } { host = false; } (_id: _ctx: [ (fx.act { inherit v; }) ]);
+  uRun =
+    opts: rules:
+    dispatch opts {
+      inherit rules;
+      id = "x";
+      context = {
+        host = { };
+      };
+      inherit match;
+      classify = fx.classify;
+      inherit groupOrder;
+    };
 in
 {
   flake.tests.conflict = {
@@ -216,5 +235,65 @@ in
           ];
         };
       };
+
+    # `unique` (den-hoag-ro5cu): more than one rule surviving the exclusive filter is refused by name
+    # (the message golden is `ci/tests-error.nix`'s `conflict` cell); one survivor is served; with
+    # `unique` unset a tie fires additively, as before.
+    test-unique-one-survivor-is-served = {
+      expr =
+        map (a: a.v)
+          (uRun
+            {
+              exclusive = true;
+              unique = true;
+            }
+            [
+              (uMk "low" 0)
+              (uMk "high" 10)
+            ]
+          ).actions.default;
+      expected = [ "high" ];
+    };
+    # paired with a one-survivor control under the SAME options, so an options step that refused
+    # `unique` itself reads red here rather than as the refusal this cell asserts.
+    test-unique-two-survivors-refused-catchably = {
+      expr =
+        map
+          (
+            rules:
+            (builtins.tryEval (
+              builtins.deepSeq (uRun {
+                exclusive = true;
+                unique = true;
+              } rules) null
+            )).success
+          )
+          [
+            [
+              (uMk "a" 5)
+              (uMk "b" 5)
+            ]
+            [
+              (uMk "a" 5)
+              (uMk "b" 0)
+            ]
+          ];
+      expected = [
+        false
+        true
+      ];
+    };
+    test-unique-unset-tie-fires-additively = {
+      expr =
+        map (a: a.v)
+          (uRun { } [
+            (uMk "a" 5)
+            (uMk "b" 5)
+          ]).actions.default;
+      expected = [
+        "a"
+        "b"
+      ];
+    };
   };
 }
