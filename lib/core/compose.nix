@@ -1,5 +1,6 @@
 { prelude }:
 let
+  inherit (import ./rule.nix { inherit prelude; }) fire;
   restrict =
     extraCondition: rule:
     rule
@@ -45,10 +46,10 @@ let
     produce =
       id: ctx:
       let
-        actionsA = ruleA.produce id ctx;
+        actionsA = fire " (chain arm A)" ruleA id ctx;
         feedback = extract actionsA;
       in
-      actionsA ++ ruleB.produce id (ctx // feedback);
+      actionsA ++ fire " (chain arm B)" ruleB id (ctx // feedback);
     # EITHER ARM NULL ⇒ NULL. A composite is anonymous the moment ANY of its arms is,
     # because the arm with no identity is the one whose distinct rules the handle can
     # no longer tell apart. Defaulting a null arm to a constant hands two

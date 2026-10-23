@@ -19,6 +19,8 @@
 let
   inherit (genDispatch)
     mkRule
+    fromFunction
+    fromFunctionMatch
     dispatch
     chain
     deriveGroup
@@ -38,6 +40,25 @@ let
   # gen-prelude's refusal text, composed with this library's own literal door, field and accepted
   # set (den-hoag-7jltk): every assertion kept, none of gen-prelude's wording copied.
   inherit (prelude) refusals;
+
+  # `produce : id -> ctx -> [ action ]`: a result that is not a list is refused by name where the
+  # group's actions are read (the tail is the same at every site).
+  notAList =
+    who:
+    exactly "gen-dispatch: rule ${who} produced a set, not a list of actions (produce : id -> ctx -> [ action ]; return one action as [ action ])";
+  structural =
+    rules:
+    (dispatch { } {
+      inherit rules;
+      id = null;
+      context = {
+        host = 1;
+      };
+      match = fromFunctionMatch;
+      inherit (fx) classify;
+      groupOrder = [ "structural" ];
+    }).actions.structural;
+  oneAction = kind: fx.spawn { inherit kind; };
 in
 {
   flake.testsError.declared = {
@@ -86,6 +107,44 @@ in
       expectedError = {
         type = "ThrownError";
         msg = exactly "gen-dispatch: unique dispatch of group \"structural\" has 2 surviving rules: hem-a, hem-b";
+      };
+    };
+  };
+
+  flake.testsError.single-effect = {
+    # undeclared path: `classify` would have read the result, and aborted uncatchably
+    test-fromFunction-single-action-refused-by-name = {
+      expr = structural [ (fromFunction ({ host, ... }: oneAction "a")) ];
+      expectedError = {
+        type = "ThrownError";
+        msg = notAList "\"anonymous\" in group \"structural\"";
+      };
+    };
+
+    # declared path: `classify` never runs, so this refusal is the only one
+    test-declared-single-action-refused-by-name = {
+      expr = structural [
+        (mkRule {
+          identity = "decl";
+          produces = [ "spawn" ];
+        } { host = false; } (_: _: oneAction "d"))
+      ];
+      expectedError = {
+        type = "ThrownError";
+        msg = notAList "\"decl\" in group \"structural\"";
+      };
+    };
+
+    # `chain` concatenates its arms inside its own `produce`, before dispatch sees a result
+    test-chain-arm-single-action-refused-by-name = {
+      expr = structural [
+        (chain (_: { }) (mkRule { identity = "ca"; } { host = false; } (_: _: oneAction "ca")) (
+          mkRule { identity = "cb"; } { host = false; } (_: _: [ (oneAction "cb") ])
+        ))
+      ];
+      expectedError = {
+        type = "ThrownError";
+        msg = notAList "\"ca\" (chain arm A)";
       };
     };
   };

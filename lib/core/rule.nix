@@ -152,7 +152,25 @@ let
         required = prelude.filter (k: !condition.${k}) (builtins.attrNames condition);
       in
       prelude.all (k: ctx ? ${k}) required;
+  # The one checked call of `produce`: a result that is not a list is refused by name, at the call, so
+  # it is total over every record dispatch accepts. `isList` forces the list and no element.
+  fire =
+    where: r: id: ctx:
+    let
+      a = r.produce id ctx;
+    in
+    if builtins.isList a then
+      a
+    else
+      throw "gen-dispatch: rule \"${
+        if (r.identity or null) != null then r.identity else "anonymous"
+      }\"${where} produced a ${builtins.typeOf a}, not a list of actions (produce : id -> ctx -> [ action ]; return one action as [ action ])";
 in
 {
-  inherit mkRule fromFunction fromFunctionMatch;
+  inherit
+    mkRule
+    fromFunction
+    fromFunctionMatch
+    fire
+    ;
 }

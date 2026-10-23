@@ -12,6 +12,7 @@
 # (a confluence guarantee), so dispatch keeps no cross-pass "already fired" bookkeeping.
 { prelude }:
 let
+  inherit (import ./rule.nix { inherit prelude; }) fire;
   inherit (prelude)
     filter
     foldl'
@@ -144,7 +145,7 @@ let
 
           results = map (r: {
             inherit (r) identity;
-            actions = r.produce id acc.ctx;
+            actions = fire " in group \"${groupName}\"" r id acc.ctx;
             # A rule that DECLARES its produced-kind family (`produces`) had its stratum discharged
             # at DEFINITION time (`deriveGroup` classified the declared kinds); dispatch HONORS that
             # declaration and skips the fire-and-classify inference below. `or null` keeps rules that

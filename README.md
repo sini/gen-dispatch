@@ -171,6 +171,8 @@ produce                 # id -> ctx -> [ action ]
 -> rule
 ```
 
+`produce` returns a list of actions; actions are opaque tagged attrsets, and dispatch reads them only through `classify`. A result that is not a list is refused by name when its group's actions are read: write a single action as `[ action ]`. Dispatch reports no per-rule provenance: a group's actions are the concatenation of its surviving rules' lists.
+
 ### `fromFunction`
 
 ```nix
